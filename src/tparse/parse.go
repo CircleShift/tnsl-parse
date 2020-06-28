@@ -40,6 +40,8 @@ func stringLiteral(r *bufio.Reader) Token {
 	}
 
 	b := strings.Builder{}
+	b.WriteRune(run)
+	run, _, err = r.ReadRune()
 
 	for ; err == nil; run, _, err = r.ReadRune() {
 		b.WriteRune(run)
@@ -64,6 +66,8 @@ func charLiteral(r *bufio.Reader) Token {
 	}
 
 	b := strings.Builder{}
+	b.WriteRune(run)
+	run, _, err = r.ReadRune()
 
 	for ; err == nil; run, _, err = r.ReadRune() {
 		b.WriteRune(run)
@@ -107,6 +111,31 @@ func splitResRunes(str string, max int) []Token {
 	return out
 }
 
+// Remove block comments
+func stripBlockComments(t []Token) []Token {
+	out := []Token{}
+	bc := false
+	for _, tok := range t {
+		if tok.Type == DELIMIT && tok.Data == "/#" {
+			bc = true
+			continue
+		}
+
+		if tok.Type == DELIMIT && tok.Data == "#/" {
+			bc = false
+			continue
+		}
+
+		if bc {
+			continue
+		}
+
+		out = append(out, tok)
+	}
+
+	return out
+}
+
 // ParseFile tries to read a file and turn it into a series of tokens
 func ParseFile(path string) []Token {
 	out := []Token{}
@@ -123,7 +152,7 @@ func ParseFile(path string) []Token {
 
 	max := maxResRunes()
 
-	for r := ' '; ; r, _, err = read.ReadRune() {
+	for r := rune(' '); ; r, _, err = read.ReadRune() {
 		// If error in stream or EOF, break
 		if err != nil {
 			if err != io.EOF {
@@ -138,6 +167,37 @@ func ParseFile(path string) []Token {
 				out = append(out, Token{Type: checkToken(b.String()), Data: b.String()})
 				b.Reset()
 			}
+			continue
+		}
+
+		if unicode.IsNumber(r) && b.String() == "" {
+			read.UnreadRune()
+			out = append(out, numericLiteral(read))
+
+			continue
+		}
+
+		if r == '\'' {
+			if b.String() != "" {
+				out = append(out, Token{Type: checkToken(b.String()), Data: b.String()})
+				b.Reset()
+			}
+
+			read.UnreadRune()
+			out = append(out, charLiteral(read))
+
+			continue
+		}
+
+		if r == '"' {
+			if b.String() != "" {
+				out = append(out, Token{Type: checkToken(b.String()), Data: b.String()})
+				b.Reset()
+			}
+
+			read.UnreadRune()
+			out = append(out, stringLiteral(read))
+
 			continue
 		}
 
@@ -157,7 +217,18 @@ func ParseFile(path string) []Token {
 
 			read.UnreadRune()
 
-			out = append(out, splitResRunes(b.String(), max)...)
+			rgs := splitResRunes(b.String(), max)
+
+			// Line Comments
+			for i, rg := range rgs {
+				if rg.Data == "#" {
+					rgs = rgs[:i]
+					read.ReadString('\n')
+					break
+				}
+			}
+
+			out = append(out, rgs...)
 
 			b.Reset()
 
@@ -168,7 +239,7 @@ func ParseFile(path string) []Token {
 		b.WriteRune(r)
 	}
 
-	return out
+	return stripBlockComments(out)
 }
 
 // StringAsRunes returns a string as a rune slice

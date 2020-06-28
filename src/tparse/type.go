@@ -87,16 +87,12 @@ var RESRUNE = map[rune]int{
 	'{': DELIMIT,
 	// Array mark close
 	'}': DELIMIT,
-	// String literal
-	'\'': DELIMIT,
-	// String
-	'"': DELIMIT,
 
 	// Start of pre-proc directive
 	':': LINESEP,
 	// Start of line
 	';': LINESEP,
-	// Start of comment
+	// Comment line
 	'#': LINESEP,
 
 	// Seperate arguments
