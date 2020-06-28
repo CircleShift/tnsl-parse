@@ -8,9 +8,10 @@
 
 
 # Preprocessor directives are like this
-:pack main
-:import what.tnsl
-:import "what.tnsl"
+# Import from library using '
+:import 'what/what.tnsl'
+# Import from local file using "
+:import "what/what.tnsl"
 
 
 
