@@ -1,0 +1,170 @@
+#Comment like this
+
+/#
+  Or like this (blocks begin with /<symbol> and end with <symbol>/)
+#/
+
+
+
+
+# Preprocessor directives are like this
+:pack main
+
+# You can also create a block of them.
+/:
+  import what.tnsl
+  import "what.tnsl"
+:/
+
+
+
+
+# Code lines start with ;
+
+# pass a variable
+;int s = 3
+
+
+
+
+# generic scope block
+
+# d does not exist
+
+/; # Scope
+  
+  ;int d = 1
+  # d exists
+  ;s = d
+
+;/ # Scope end
+
+# d does not exist
+
+
+
+
+# Function def:
+# Any non-reserved word
+# Sig: [output1, output2] (input1, input2)
+# Main may have 
+/;main ({}string str) [int] # Doesn't matter what order the sig is in
+  # Main may also omit either for void sig
+
+
+  # {} represents a tnsl style array
+  # ~ before var represents address var
+  # ~ after a address var represents the data the address points at
+  
+  ;int i = 1
+  ;~int j = ~i # address of int j = address of i
+  j~ = 2 # i = 2 # data of j = 2
+
+  # /loop represents the only loop in tnsl
+  # loop is followed by (init statements) [multi statements]
+  # where the first statement in multi is the test, and the once statements are only run once at the beginning of the loop
+  /; loop [i!==1]
+    # Do something
+    ; i = 1
+  ;/
+
+;/ # End main
+
+
+
+# The struct keyword is followed by [name] {values}
+;struct [s1] {string Name, string Message = "Default message (c-style strings)"}
+
+# Most people should declare as such:
+;struct [s1] {
+    string Name,
+    string Message = "Default message (c-style strings)"
+}
+
+# When defining a new struct, use {}
+;s1 a = {}
+;a.Name = "Kyle Gunger"
+
+;~s1 b = ~a
+;b~.Name # "Kyle Gunger"
+
+# Quick initialization
+;s1 c = {"", ""}
+# These come in the same order that they do in the struct, so {Name, Message} in this case.
+
+# You can also specify
+;s1 d = {
+    Message = "Message",
+    Name = "Name"
+}
+
+
+
+
+# This is how arrays are defined as well.
+;{}int a = {
+  1, 2, 3, 4
+}
+
+
+
+
+# You may also define an initializer like such:
+/;s1 [s1]
+  # Initializer must be named same as struct, and must return one of the structs as its only output
+  return new s1{"Kyle", "TNSL Creator"}
+;/
+
+/; if (i == 3)
+
+# Quick define new block
+;;else
+
+;/
+
+/; switch (i)
+  # You can do stuff here as well
+  ;int t = 0
+
+  # Case block
+  /;case 1
+    ;i = 0
+    ;t = 2
+    ;break
+
+  ;;case 2
+    ;i = 1
+    ;t = 2
+    ;break
+
+  ;;default
+    ;i = 3
+    ;break
+  ;/
+
+  # You can do stuff here too
+  /; if [t == 2]
+    i = t - i
+  ;/
+
+  # Second case block
+  /;case 1
+    ;i = 4
+  ;/
+;/
+
+
+/;(type T) # Generic type
+  ; struct [gen] {
+    T i
+  }
+;/
+
+;gen(int) j{2}
+
+;{}gen(int) j{
+  {1},
+  {2},
+  {3}
+}
+
