@@ -9,13 +9,8 @@
 
 # Preprocessor directives are like this
 :pack main
-
-# You can also create a block of them.
-/:
-  import what.tnsl
-  import "what.tnsl"
-:/
-
+:import what.tnsl
+:import "what.tnsl"
 
 
 
@@ -60,7 +55,7 @@
   ;~int j = ~i # address of int j = address of i
   j~ = 2 # i = 2 # data of j = 2
 
-  # /loop represents the only loop in tnsl
+  # /;loop represents the only loop in tnsl
   # loop is followed by (init statements) [multi statements]
   # where the first statement in multi is the test, and the once statements are only run once at the beginning of the loop
   /; loop [i!==1]
@@ -83,6 +78,8 @@
 
 # When defining a new struct, use {}
 ;s1 a = {}
+# Same as
+;s1 a{}
 ;a.Name = "Kyle Gunger"
 
 ;~s1 b = ~a
@@ -93,7 +90,7 @@
 # These come in the same order that they do in the struct, so {Name, Message} in this case.
 
 # You can also specify
-;s1 d = {
+;s1 d{
     Message = "Message",
     Name = "Name"
 }
@@ -106,7 +103,10 @@
   1, 2, 3, 4
 }
 
-
+# Same as
+;{}int a{
+  1, 2, 3, 4
+}
 
 
 # You may also define an initializer like such:
