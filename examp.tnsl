@@ -1,26 +1,25 @@
 #Comment like this
 
-/#
+/##
   Or like this (blocks begin with /<symbol> and end with <symbol>/)
+  Block Comment
 #/
-
-
-
+/##
+  Doc Comment
+#/
 
 # Preprocessor directives are like this
 # Import from library using '
-:import 'what/what.tnsl'
+:import 'what/what.tnsl' a
 # Import from local file using "
 :import "what/what.tnsl"
-
-
 
 # Code lines start with ;
 
 # pass a variable
 ;int s = 3
 
-
+;byte bitbyte = .2
 
 
 # generic scope block
@@ -38,8 +37,6 @@
 # d does not exist
 
 
-
-
 # Function def:
 # Any non-reserved word
 # Sig: [output1, output2] (input1, input2)
@@ -53,13 +50,13 @@
   # ~ after a address var represents the data the address points at
   
   ;int i = 1
-  ;~int j = ~i # address of int j = address of i
+  ;~int j ~= i # address of int j = address of i
   j~ = 2 # i = 2 # data of j = 2
 
   # /;loop represents the only loop in tnsl
   # loop is followed by (init statements) [multi statements]
   # where the first statement in multi is the test, and the once statements are only run once at the beginning of the loop
-  /; loop [i!==1]
+  /;loop [i!==1]
     # Do something
     ; i = 1
   ;/
@@ -145,7 +142,10 @@
 
   # You can do stuff here too
   /; if [t == 2]
-    i = t - i
+    ;i = t - i
+
+  ;;else if [t==3]
+    ;i = t+i
   ;/
 
   # Second case block
@@ -155,17 +155,18 @@
 ;/
 
 
-/;(type T) # Generic type
-  ; struct [gen] {
-    T i
-  }
-;/
+# Dumb generic type struct
+; struct [gen] (type T) {
+  T i
+}
 
+# This seems dumb
 ;gen(int) j{2}
 
-;{}gen(int) j{
-  {1},
-  {2},
-  {3}
+# But this seems dumber
+;{}gen(gen(int)) j{
+  {{1}},
+  {{2}},
+  {{3}}
 }
 

@@ -33,10 +33,12 @@ const DEFWORD = 8
 var RESWORD = map[string]int{
 	"import": PREWORD,
 
+	"bool": KEYTYPE,
+	"byte": KEYTYPE,
+	"char": KEYTYPE,
+
 	"int":   KEYTYPE,
-	"bool":  KEYTYPE,
 	"float": KEYTYPE,
-	"char":  KEYTYPE,
 
 	"struct": KEYWORD,
 	"type":   KEYWORD,
@@ -146,9 +148,6 @@ func checkResRune(r rune) int {
 
 // RESRUNES Reserved sets of reserved runes which mean something
 var RESRUNES = map[string]int{
-	// Pre-processor block
-	"/:": DELIMIT,
-	":/": DELIMIT,
 	// Code block
 	"/;": DELIMIT,
 	";/": DELIMIT,
@@ -156,18 +155,7 @@ var RESRUNES = map[string]int{
 	"/#": DELIMIT,
 	"#/": DELIMIT,
 
-	// Quick chain
-	"::": DELIMIT,
-	":;": DELIMIT,
-	":#": DELIMIT,
-
 	";;": DELIMIT,
-	";:": DELIMIT,
-	";#": DELIMIT,
-
-	"##": DELIMIT,
-	"#:": DELIMIT,
-	"#;": DELIMIT,
 
 	// Boolean equ
 	"==": AUGMENT,

@@ -18,7 +18,7 @@ func main() {
 		return
 	}
 
-	fd.WriteString(fmt.Sprint(tparse.ParseFile(*inputFile)))
+	fd.WriteString(fmt.Sprint(tparse.TokenizeFile(*inputFile)))
 
 	fd.Close()
 }
