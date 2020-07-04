@@ -1,0 +1,15 @@
+;int i = 0
+
+/;if (i==0)
+    ;i = 2
+;//;else
+    ;i = 0
+;/
+
+# ;; can be used as a quick block re-definition
+
+/;if (i==0)
+    ;i = 2
+;;else
+    ;i = 0
+;/

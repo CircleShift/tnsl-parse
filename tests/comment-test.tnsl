@@ -1,0 +1,22 @@
+;/#
+#/;
+
+a/#
+#/a
+
+/;/#
+#/;/
+
+/#
+    Ok, so this should give no output either
+#/
+
+#;
+#a
+# /;
+
+;#
+a#
+/;#
+#;/
+;/
