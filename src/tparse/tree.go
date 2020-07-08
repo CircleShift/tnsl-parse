@@ -10,9 +10,15 @@ type Node struct {
 // Directive represents a block or single directive
 type Directive struct {
 	Type string
-	ID   string
+	Data string
 
-	Data []string
+	Param Paramaters
+}
+
+// Paramaters represents a set of paramaters for a directive
+type Paramaters struct {
+	In  []string
+	Out []string
 }
 
 func handleCode(tokens *[]Token, start int) (Node, int) {
@@ -30,7 +36,7 @@ func handlePre(tokens *[]Token, start int) (Node, int) {
 // CreateTree takes a series of tokens and converts them into an AST
 func CreateTree(tokens *[]Token, start int) Node {
 	out := Node{}
-	out.Dir = Directive{Type: "root", ID: "root"}
+	out.Dir = Directive{Type: "root"}
 
 	var tmp Node
 

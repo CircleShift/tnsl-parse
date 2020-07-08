@@ -1,10 +1,27 @@
+# These should all work
 ;string s = "\""
 ;string st="\\"
 
 ;int i = 0
 ;int j=1
 
-;float f = .2
+;float f = 0.2
 ;float d=3.1415
 
-;char c = '\'';char ch='\uxxxx'
+;char c = '\'';char ch='\u0000'
+
+# Invalid (some may be weeded out through the verify phase):
+
+;string s ""
+
+;int 0 i
+
+# Invalid ops should also be detected if dealing with literals
+
+;char c ~= 's'
+
+# Debate over weather these are legal
+
+;int k = .1
+
+;int l = 0x01

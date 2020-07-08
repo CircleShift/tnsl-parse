@@ -40,6 +40,8 @@ var RESWORD = map[string]int{
 	"int":   KEYTYPE,
 	"float": KEYTYPE,
 
+	"string": KEYTYPE,
+
 	"struct": KEYWORD,
 	"type":   KEYWORD,
 

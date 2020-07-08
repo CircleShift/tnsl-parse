@@ -2,14 +2,32 @@
 
 /;if (i==0)
     ;i = 2
-;//;else
+
+;/
+/;else
     ;i = 0
+
 ;/
 
 # ;; can be used as a quick block re-definition
 
 /;if (i==0)
     ;i = 2
+
 ;;else
     ;i = 0
+
+;/
+
+/;if
+    ;char ch = '\n'
+
+;;else
+    ;int it = 90
+
+;/
+
+/;main
+    ;
+    
 ;/
