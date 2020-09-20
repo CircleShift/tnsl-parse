@@ -34,13 +34,10 @@ var RESWORD = map[string]int{
 	"import": PREWORD,
 
 	"bool": KEYTYPE,
-	"byte": KEYTYPE,
 	"char": KEYTYPE,
 
 	"int":   KEYTYPE,
 	"float": KEYTYPE,
-
-	"string": KEYTYPE,
 
 	"struct": KEYWORD,
 	"type":   KEYWORD,
@@ -94,12 +91,12 @@ var RESRUNE = map[rune]int{
 
 	// Start of pre-proc directive
 	':': LINESEP,
-	// Start of line
+	// Statement seperator
 	';': LINESEP,
 	// Comment line
 	'#': LINESEP,
 
-	// Seperate arguments
+	// Seperate arguments or enclosed statements
 	',': ARGNSEP,
 
 	// Assignment
@@ -156,8 +153,17 @@ var RESRUNES = map[string]int{
 	// Comment block
 	"/#": DELIMIT,
 	"#/": DELIMIT,
+	// Preproc block
+	"/:": DELIMIT,
+	":/": DELIMIT,
 
+	// Redef blocks
 	";;": DELIMIT,
+	"::": DELIMIT,
+	";#": DELIMIT,
+	":#": DELIMIT,
+	"#;": DELIMIT,
+	"#:": DELIMIT,
 
 	// Boolean equ
 	"==": AUGMENT,

@@ -27,6 +27,38 @@ func handleCode(tokens *[]Token, start int) (Node, int) {
 	return out, start
 }
 
+func handleBlock(tokens *[]Token, start int) (Node, int) {
+	var out Node
+	var tmp Node
+
+	l := len(*tokens)
+
+	if start >= l {
+		panic((*tokens)[l-1])
+	}
+
+	for ; start < l; start++ {
+		t := (*tokens)[start]
+		switch t.Type {
+		case LINESEP:
+			if t.Data == ";" {
+				tmp, start = handleCode(tokens, start+1)
+			}
+			break
+		case DELIMIT:
+			if t.Data == "/;" {
+				tmp, start = handleCode(tokens, start+1)
+			}
+			break
+		default:
+			panic(t)
+		}
+		out.SubNodes = append(out.SubNodes, tmp)
+	}
+
+	return out, start
+}
+
 func handlePre(tokens *[]Token, start int) (Node, int) {
 	out := Node{}
 

@@ -1,33 +1,26 @@
-;int i = 0
-
 /;if (i==0)
     ;i = 2
-
 ;/
-/;else
-    ;i = 0
 
-;/
+/:  import
+    "this"
+    "that"
+:/
 
 # ;; can be used as a quick block re-definition
 
 /;if (i==0)
     ;i = 2
-
 ;;else
     ;i = 0
-
 ;/
 
-/;if
-    ;char ch = '\n'
+# Comment block switching
 
-;;else
-    ;int it = 90
-
-;/
-
-/;main
-    ;
-    
+/; if (i == 2)
+    ;i = 4
+;#
+    Comment
+#; else
+    ;i = 6
 ;/

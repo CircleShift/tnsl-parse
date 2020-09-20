@@ -11,12 +11,20 @@ a/#
     Ok, so this should give no output either
 #/
 
-#;
+# ;
 #a
 # /;
 
-;#
+; # stuff
 a#
 /;#
-#;/
+# ;/
 ;/
+
+# More intricate block changing checks
+
+/# Comment start
+Comment end #; if (thing)
+;; else if (other_thing)
+;# Comment start
+End #/

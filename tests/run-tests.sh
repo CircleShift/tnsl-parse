@@ -13,3 +13,6 @@ parse
 
 PARSEFILE=literal
 parse
+
+PARSEFILE=parameter
+parse

@@ -1,0 +1,2 @@
+/; loop (int initial = 0, int complex = 2) [initial < max || complex < 40, initial++, complex += 7, another += 2]
+;/

@@ -126,12 +126,32 @@ func stripBlockComments(t []Token) []Token {
 	out := []Token{}
 	bc := false
 	for _, tok := range t {
-		if tok.Type == DELIMIT && tok.Data == "/#" {
-			bc = true
-			continue
-		} else if tok.Type == DELIMIT && tok.Data == "#/" {
-			bc = false
-			continue
+
+		if tok.Type == DELIMIT {
+			switch tok.Data {
+			case ";#":
+				out = append(out, Token{DELIMIT, ";/", tok.Line, tok.Char})
+				bc = true
+				continue
+			case ":#":
+				out = append(out, Token{DELIMIT, ":/", tok.Line, tok.Char})
+				bc = true
+				continue
+			case "/#":
+				bc = true
+				continue
+			case "#;":
+				out = append(out, Token{DELIMIT, "/;", tok.Line, tok.Char})
+				bc = false
+				continue
+			case "#:":
+				out = append(out, Token{DELIMIT, "/:", tok.Line, tok.Char})
+				bc = false
+				continue
+			case "#/":
+				bc = false
+				continue
+			}
 		} else if bc {
 			continue
 		}
@@ -158,7 +178,7 @@ func TokenizeFile(path string) []Token {
 
 	max := maxResRunes()
 
-	ln, cn, last := int(0), int(-1), int(0)
+	ln, cn, last := int(1), int(-1), int(0)
 	sp := false
 
 	for r := rune(' '); ; r, _, err = read.ReadRune() {
