@@ -1,3 +1,19 @@
+/*
+   Copyright 2020 Kyle Gunger
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
 package tparse
 
 import (
@@ -128,26 +144,23 @@ func stripBlockComments(t []Token) []Token {
 	for _, tok := range t {
 
 		if tok.Type == DELIMIT {
+			ch := ":"
 			switch tok.Data {
 			case ";#":
-				out = append(out, Token{DELIMIT, ";/", tok.Line, tok.Char})
-				bc = true
-				continue
+				ch = ";"
+				fallthrough
 			case ":#":
-				out = append(out, Token{DELIMIT, ":/", tok.Line, tok.Char})
-				bc = true
-				continue
+				out = append(out, Token{DELIMIT, ch + "/", tok.Line, tok.Char})
+				fallthrough
 			case "/#":
 				bc = true
 				continue
 			case "#;":
-				out = append(out, Token{DELIMIT, "/;", tok.Line, tok.Char})
-				bc = false
-				continue
+				ch = ";"
+				fallthrough
 			case "#:":
-				out = append(out, Token{DELIMIT, "/:", tok.Line, tok.Char})
-				bc = false
-				continue
+				out = append(out, Token{DELIMIT, "/" + ch, tok.Line, tok.Char})
+				fallthrough
 			case "#/":
 				bc = false
 				continue
@@ -160,6 +173,32 @@ func stripBlockComments(t []Token) []Token {
 	}
 
 	return out
+}
+
+func endsDef(toks *[]Token) bool {
+	for i := range *toks {
+		switch (*toks)[i].Data {
+		case ":", ";", "/;", "/:", "#;", "#:", ";;", "::":
+			return true
+		}
+	}
+
+	return false
+}
+
+func endsPre(toks *[]Token) bool {
+	o := false
+
+	for i := range *toks {
+		switch (*toks)[i].Data {
+		case ":", "/:", "#:", "::":
+			o = true
+		case ";", "/;", "#;", ";;":
+			o = false
+		}
+	}
+
+	return o
 }
 
 // TokenizeFile tries to read a file and turn it into a series of tokens
@@ -179,7 +218,7 @@ func TokenizeFile(path string) []Token {
 	max := maxResRunes()
 
 	ln, cn, last := int(1), int(-1), int(0)
-	sp := false
+	sp, pre := false, false
 
 	for r := rune(' '); ; r, _, err = read.ReadRune() {
 		cn++
@@ -195,7 +234,7 @@ func TokenizeFile(path string) []Token {
 		if unicode.IsSpace(r) {
 			sp = true
 			if b.String() != "" {
-				out = append(out, Token{Type: checkToken(b.String()), Data: b.String(), Line: ln, Char: last})
+				out = append(out, Token{Type: checkToken(b.String(), pre), Data: b.String(), Line: ln, Char: last})
 				b.Reset()
 			}
 
@@ -222,7 +261,7 @@ func TokenizeFile(path string) []Token {
 
 		if r == '\'' {
 			if b.String() != "" {
-				out = append(out, Token{Type: checkToken(b.String()), Data: b.String(), Line: ln, Char: last})
+				out = append(out, Token{Type: checkToken(b.String(), pre), Data: b.String(), Line: ln, Char: last})
 				b.Reset()
 			}
 
@@ -235,7 +274,7 @@ func TokenizeFile(path string) []Token {
 
 		if r == '"' {
 			if b.String() != "" {
-				out = append(out, Token{Type: checkToken(b.String()), Data: b.String()})
+				out = append(out, Token{Type: checkToken(b.String(), pre), Data: b.String()})
 				b.Reset()
 			}
 
@@ -249,7 +288,7 @@ func TokenizeFile(path string) []Token {
 		// Checking for a rune group
 		if checkResRune(r) != -1 {
 			if b.String() != "" {
-				out = append(out, Token{Type: checkToken(b.String()), Data: b.String(), Line: ln, Char: last})
+				out = append(out, Token{Type: checkToken(b.String(), pre), Data: b.String(), Line: ln, Char: last})
 				b.Reset()
 			}
 			last = cn
@@ -283,6 +322,10 @@ func TokenizeFile(path string) []Token {
 			b.Reset()
 
 			sp = true
+
+			if endsDef(&rgs) {
+				pre = endsPre(&rgs)
+			}
 
 			continue
 		}

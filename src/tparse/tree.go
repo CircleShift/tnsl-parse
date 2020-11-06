@@ -1,95 +1,163 @@
+/*
+   Copyright 2020 Kyle Gunger
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
 package tparse
 
-// Node represents a group of nodes or a directive
-type Node struct {
-	SubNodes []Node
+import "fmt"
 
-	Dir Directive
+// ID 9 = ast thing
+
+func errOut(message string, token Token) {
+	fmt.Println(message)
+	fmt.Println(token)
+	panic(token)
 }
 
-// Directive represents a block or single directive
-type Directive struct {
-	Type string
-	Data string
-
-	Param Paramaters
-}
-
-// Paramaters represents a set of paramaters for a directive
-type Paramaters struct {
-	In  []string
-	Out []string
-}
-
-func handleCode(tokens *[]Token, start int) (Node, int) {
+func tree(tokens *[]Token, tok, max int) (Node, int) {
 	out := Node{}
 
-	return out, start
-}
-
-func handleBlock(tokens *[]Token, start int) (Node, int) {
-	var out Node
-	var tmp Node
-
-	l := len(*tokens)
-
-	if start >= l {
-		panic((*tokens)[l-1])
+	for ; tok < max; tok++ {
+		//t := (*tokens)[tok]
 	}
 
-	for ; start < l; start++ {
-		t := (*tokens)[start]
-		switch t.Type {
-		case LINESEP:
-			if t.Data == ";" {
-				tmp, start = handleCode(tokens, start+1)
-			}
-			break
-		case DELIMIT:
-			if t.Data == "/;" {
-				tmp, start = handleCode(tokens, start+1)
-			}
-			break
+	return out, tok
+}
+
+func parseList(tokens *[]Token, tok, max int) (Node, int) {
+	out := Node{}
+	out.Data = Token{Type: 10, Data: "list"}
+
+	for ; tok < max; tok++ {
+		//t := (*tokens)[tok]
+	}
+
+	return out, tok
+}
+
+func parseTypeList(tokens *[]Token, tok, max int) (Node, int) {
+	out := Node{}
+	out.Data = Token{Type: 10, Data: "list"}
+	var tmp Node
+
+	for ; tok < max; tok++ {
+		t := (*tokens)[tok]
+
+		switch t.Data {
+		case ")", "]", "}":
+			return out, tok
+		case ",":
+			tok++
 		default:
-			panic(t)
+			errOut("Error: unexpected token when parsing a list of types", t)
 		}
-		out.SubNodes = append(out.SubNodes, tmp)
+
+		tmp, tok = parseType(tokens, tok, max)
+		out.Sub = append(out.Sub, tmp)
 	}
 
-	return out, start
+	return out, tok
 }
 
-func handlePre(tokens *[]Token, start int) (Node, int) {
+func parseVoidType(tokens *[]Token, tok, max int) (Node, int) {
 	out := Node{}
 
-	return out, start
+	for ; tok < max; tok++ {
+		//t := (*tokens)[tok]
+	}
+
+	return out, tok
 }
 
-// CreateTree takes a series of tokens and converts them into an AST
-func CreateTree(tokens *[]Token, start int) Node {
+func parseType(tokens *[]Token, tok, max int) (Node, int) {
 	out := Node{}
-	out.Dir = Directive{Type: "root"}
+	working := &out
 
-	var tmp Node
+	for ; tok < max; tok++ {
+		t := (*tokens)[tok]
+		switch t.Type {
+		case AUGMENT:
+			if t.Data != "~" && t.Data != "`" {
+				errOut("Error: unexpected augment token when parsing type", t)
+			}
+			working.Data = t
 
-	for i, t := range *tokens {
+		case KEYTYPE:
+			if t.Data == "void" {
+				*working, tok = parseVoidType(tokens, tok, max)
+			} else {
+				working.Data = t
+			}
+
+			return out, tok
+
+		case DEFWORD:
+			if (*tokens)[tok+1].Data == "(" {
+
+			}
+
+		case KEYWORD:
+			if t.Data != "const" && t.Data != "volatile" {
+				errOut("Error: unexpected keyword when parsing type", t)
+			}
+			working.Data = t
+
+		default:
+			errOut("Error: unexpected token when parsing type", t)
+		}
+		working.Sub = append(working.Sub, Node{})
+		working = &(working.Sub[0])
+	}
+
+	return out, tok
+}
+
+func parseValue(tokens *[]Token, tok, max int) (Node, int) {
+	out := Node{}
+
+	for ; tok < max; tok++ {
+		t := (*tokens)[tok]
+		switch t.Type {
+		case LITERAL:
+		case DEFWORD:
+		case DELIMIT:
+		}
+	}
+
+	return out, tok
+}
+
+// MakeTree creates an AST out of a set of tokens
+func MakeTree(tokens *[]Token, file string) Node {
+	out := Node{}
+	out.Data = Token{9, file, 0, 0}
+	out.Parent = &out
+
+	tmp := Node{}
+	working := &tmp
+
+	for _, t := range *tokens {
 		switch t.Type {
 		case LINESEP:
-			if t.Data == ";" {
-				tmp, i = handleCode(tokens, i)
-			} else if t.Data == ":" {
-				tmp, i = handlePre(tokens, i)
-			}
-			break
+
 		case DELIMIT:
-			if t.Data == "/;" {
-				tmp, i = handleCode(tokens, i)
-			} else if t.Data == "/:" {
-				tmp, i = handlePre(tokens, i)
-			}
-			break
+
 		}
-		out.SubNodes = append(out.SubNodes, tmp)
+		tmp = Node{Data: t}
+
+		working.Sub = append(working.Sub, tmp)
 	}
 
 	return out

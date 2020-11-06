@@ -1,4 +1,4 @@
-/#
+/*
    Copyright 2020 Kyle Gunger
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,32 +12,12 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
-#/
+*/
 
-# These should all work
-;[]char s = "\""
-;[]char st="\\"
+package tparse
 
-;int i = 0
-;int j=1
+//TODO: Everything
 
-;float f = 0.2
-;float d=3.1415
-
-;char c = '\'';char ch='\u0000'
-
-# Invalid (some may be weeded out through the verify phase):
-
-;string s ""
-
-;int 0 i
-
-# Invalid ops should also be detected if dealing with literals
-
-;char c ~= 's'
-
-# Debate over weather these are legal
-
-;int k = .1
-
-;int l = 0x01
+/*
+	This file is suppost to contain code to include other files when asked, and represents the most important part of the pre-processor
+*/

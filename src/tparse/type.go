@@ -1,12 +1,26 @@
-package tparse
+/*
+   Copyright 2020 Kyle Gunger
 
-import ()
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
+package tparse
 
 // LINESEP represents a line seperator
 const LINESEP = 0
 
-// ARGNSEP represents an inline seperator
-const ARGNSEP = 1
+// INLNSEP represents an inline seperator
+const INLNSEP = 1
 
 // DELIMIT represents an opening or closing delimiter
 const DELIMIT = 2
@@ -29,24 +43,60 @@ const KEYWORD = 7
 // DEFWORD represents a user-defined word such as a variable, method, or struct
 const DEFWORD = 8
 
+// PREWORDS represents all the pre-processor directives
+var PREWORDS = []string{
+	"include",
+	"define",
+	"extern",
+	"size",
+	"align",
+	"if",
+	"else",
+	"mark",
+}
+
+func checkPreWord(s string) int {
+	for _, str := range PREWORDS {
+		if str == s {
+			return PREWORD
+		}
+	}
+
+	return -1
+}
+
 // RESWORD represents all the reserved words and what type of tokens they are.
 var RESWORD = map[string]int{
-	"import": PREWORD,
+	"bool":  KEYTYPE,
+	"achar": KEYTYPE,
+	"uchar": KEYTYPE,
 
-	"bool": KEYTYPE,
-	"char": KEYTYPE,
+	"int8":   KEYTYPE,
+	"int16":  KEYTYPE,
+	"int32":  KEYTYPE,
+	"int64":  KEYTYPE,
+	"uint8":  KEYTYPE,
+	"uint16": KEYTYPE,
+	"uint32": KEYTYPE,
+	"uint64": KEYTYPE,
 
-	"int":   KEYTYPE,
-	"float": KEYTYPE,
+	"float32": KEYTYPE,
+	"float64": KEYTYPE,
 
-	"struct": KEYWORD,
-	"type":   KEYWORD,
+	"void": KEYTYPE,
+	"type": KEYTYPE,
+
+	"struct":    KEYWORD,
+	"interface": KEYWORD,
+	"enum":      KEYWORD,
+	"is":        KEYWORD,
+	"extends":   KEYWORD,
 
 	"loop":     KEYWORD,
 	"continue": KEYWORD,
 	"break":    KEYWORD,
 
-	"switch":  KEYWORD,
+	"match":   KEYWORD,
 	"case":    KEYWORD,
 	"default": KEYWORD,
 
@@ -60,10 +110,19 @@ var RESWORD = map[string]int{
 	"static":   KEYWORD,
 	"volatile": KEYWORD,
 
+	"method":   KEYWORD,
+	"override": KEYWORD,
+	"self":     KEYWORD,
+	"super":    KEYWORD,
+	"operator": KEYWORD,
+
+	"raw": KEYWORD,
+	"asm": KEYWORD,
+
 	"true":  LITERAL,
 	"false": LITERAL,
 
-	"null": LITERAL,
+	"delete": KEYWORD,
 }
 
 func checkResWord(s string) int {
@@ -84,9 +143,9 @@ var RESRUNE = map[rune]int{
 	'[': DELIMIT,
 	// Ending condition close
 	']': DELIMIT,
-	// Array mark open
+	// Array/set mark open
 	'{': DELIMIT,
-	// Array mark close
+	// Array/set mark close
 	'}': DELIMIT,
 
 	// Start of pre-proc directive
@@ -97,7 +156,7 @@ var RESRUNE = map[rune]int{
 	'#': LINESEP,
 
 	// Seperate arguments or enclosed statements
-	',': ARGNSEP,
+	',': INLNSEP,
 
 	// Assignment
 	'=': AUGMENT,
@@ -134,7 +193,7 @@ var RESRUNE = map[rune]int{
 	// Address of
 	'~': AUGMENT,
 	// De-ref
-	'_': AUGMENT,
+	'`': AUGMENT,
 }
 
 func checkResRune(r rune) int {
@@ -181,14 +240,13 @@ var RESRUNES = map[string]int{
 	"&=": AUGMENT,
 	"|=": AUGMENT,
 	"^=": AUGMENT,
-	"!=": AUGMENT,
 	"+=": AUGMENT,
 	"-=": AUGMENT,
 	"*=": AUGMENT,
 	"/=": AUGMENT,
 	"%=": AUGMENT,
 	"~=": AUGMENT,
-	"_=": AUGMENT,
+	"`=": AUGMENT,
 
 	// POSTaugmented augmentors
 	"!&":  AUGMENT,
@@ -201,6 +259,10 @@ var RESRUNES = map[string]int{
 	"!<":  AUGMENT,
 	">==": AUGMENT,
 	"<==": AUGMENT,
+
+	// Increment and De-increment
+	"++": AUGMENT,
+	"--": AUGMENT,
 }
 
 func maxResRunes() int {
@@ -229,7 +291,7 @@ func checkRuneGroup(s string) int {
 	return out
 }
 
-func checkToken(s string) int {
+func checkToken(s string, pre bool) int {
 	rs := StringAsRunes(s)
 
 	if len(rs) == 0 {
@@ -244,6 +306,10 @@ func checkToken(s string) int {
 	}
 
 	o := checkResWord(s)
+
+	if pre {
+		o = checkPreWord(s)
+	}
 
 	if o > -1 {
 		return o
