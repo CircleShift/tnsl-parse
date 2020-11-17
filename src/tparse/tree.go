@@ -29,27 +29,25 @@ func errOut(message string, token Token) {
 // Parse a list of values
 func parseValueList(tokens *[]Token, tok, max int) (Node, int) {
 	out := Node{}
-	out.Data = Token{Type: 9, Data: "list"}
-
-	currentType := Node{}
-	currentType.Data = Token{Data: "undefined"}
+	out.Data = Token{Type: 10, Data: "list"}
+	var tmp Node
 
 	tok++
 
 	for ; tok < max; tok++ {
-		var tmp Node
-		tmp, tok = parseValue(tokens, tok, max)
-		makeParent(&out, tmp)
-
 		t := (*tokens)[tok]
 
 		switch t.Data {
 		case ")", "]", "}":
 			return out, tok
 		case ",":
+			tok++
 		default:
-			errOut("Error: unexpected token when parsing list, expected ',' or end of list", t)
+			errOut("Error: unexpected token when parsing a list of types", t)
 		}
+
+		tmp, tok = parseValue(tokens, tok, max)
+		out.Sub = append(out.Sub, tmp)
 	}
 
 	return out, tok
@@ -111,8 +109,10 @@ func parseDefList(tokens *[]Token, tok, max int) (Node, int) {
 
 func parseTypeList(tokens *[]Token, tok, max int) (Node, int) {
 	out := Node{}
-	out.Data = Token{Type: 10, Data: "list"}
+	out.Data = Token{Type: 9, Data: "list"}
 	var tmp Node
+
+	tok++
 
 	for ; tok < max; tok++ {
 		t := (*tokens)[tok]
