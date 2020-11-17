@@ -123,6 +123,9 @@ var RESWORD = map[string]int{
 	"false": LITERAL,
 
 	"delete": KEYWORD,
+
+	"module": KEYWORD,
+	"export": KEYWORD,
 }
 
 func checkResWord(s string) int {

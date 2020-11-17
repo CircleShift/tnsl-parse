@@ -26,22 +26,55 @@ func errOut(message string, token Token) {
 	panic(token)
 }
 
-func tree(tokens *[]Token, tok, max int) (Node, int) {
-	out := Node{}
-
-	for ; tok < max; tok++ {
-		//t := (*tokens)[tok]
-	}
-
-	return out, tok
-}
-
-func parseList(tokens *[]Token, tok, max int) (Node, int) {
+// Parses a list of things as parameters
+func parseList(tokens *[]Token, tok, max int, param bool) (Node, int) {
 	out := Node{}
 	out.Data = Token{Type: 10, Data: "list"}
 
+	currentType := Node{}
+	currentType.Data = Token{Data: "undefined"}
+
 	for ; tok < max; tok++ {
-		//t := (*tokens)[tok]
+		t0 := (*tokens)[tok]
+		t1 := (*tokens)[tok+1]
+
+		switch t1.Data {
+		case ")", "]", "}":
+		case ",":
+		default:
+			currentType, tok = parseType(tokens, tok, max, true)
+			t0 = (*tokens)[tok]
+			t1 = (*tokens)[tok+1]
+		}
+
+		switch t0.Type {
+		case DEFWORD:
+			var tmp Node
+			if currentType.Data.Data == "undefined" {
+				errOut("Error: expected type before first parameter", t0)
+			} else if currentType.Data.Data == "type" {
+				tmp, tok = parseType(tokens, tok, max, true)
+			} else {
+				tmp = Node{Data: t0}
+			}
+
+			typ := currentType
+			makeParent(&typ, tmp)
+			makeParent(&out, typ)
+
+		default:
+			errOut("Error: unexpected token when parsing list, expected user-defined variable", t0)
+		}
+
+		switch t1.Data {
+		case ")", "]", "}":
+			return out, tok
+		case ",":
+		default:
+			errOut("Error: unexpected token when parsing list, expected ',' or end of list", t1)
+		}
+
+		tok++
 	}
 
 	return out, tok
@@ -64,7 +97,7 @@ func parseTypeList(tokens *[]Token, tok, max int) (Node, int) {
 			errOut("Error: unexpected token when parsing a list of types", t)
 		}
 
-		tmp, tok = parseType(tokens, tok, max)
+		tmp, tok = parseType(tokens, tok, max, true)
 		out.Sub = append(out.Sub, tmp)
 	}
 
@@ -81,7 +114,7 @@ func parseVoidType(tokens *[]Token, tok, max int) (Node, int) {
 	return out, tok
 }
 
-func parseType(tokens *[]Token, tok, max int) (Node, int) {
+func parseType(tokens *[]Token, tok, max int, param bool) (Node, int) {
 	out := Node{}
 	working := &out
 
@@ -109,15 +142,30 @@ func parseType(tokens *[]Token, tok, max int) (Node, int) {
 			}
 
 		case KEYWORD:
-			if t.Data != "const" && t.Data != "volatile" {
+			if param && t.Data == "static" {
+				errOut("Error: parameter types cannot be static", t)
+			} else if t.Data != "const" && t.Data != "volatile" && t.Data != "static" {
 				errOut("Error: unexpected keyword when parsing type", t)
 			}
 			working.Data = t
 
+		case DELIMIT:
+			if t.Data == "{" {
+				if (*tokens)[tok+1].Data == "}" {
+					working.Data = Token{9, "array", t.Line, t.Char}
+					tok++
+				} else {
+					errOut("Error: start of list when parsing type (did you mean {} ?)", t)
+				}
+			} else {
+				errOut("Error: start of list when parsing type", t)
+			}
+
 		default:
 			errOut("Error: unexpected token when parsing type", t)
 		}
-		working.Sub = append(working.Sub, Node{})
+
+		working.Sub = append(working.Sub, Node{Parent: working})
 		working = &(working.Sub[0])
 	}
 

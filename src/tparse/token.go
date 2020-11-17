@@ -30,3 +30,8 @@ type Node struct {
 	Data   Token
 	Sub    []Node
 }
+
+func makeParent(parent *Node, child Node) {
+	child.Parent = parent
+	parent.Sub = append(parent.Sub, child)
+}
