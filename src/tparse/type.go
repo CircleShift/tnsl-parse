@@ -52,7 +52,7 @@ var PREWORDS = []string{
 	"align",
 	"if",
 	"else",
-	"mark",
+	//"mark",
 }
 
 func checkPreWord(s string) int {
@@ -116,8 +116,9 @@ var RESWORD = map[string]int{
 	"super":    KEYWORD,
 	"operator": KEYWORD,
 
-	"raw": KEYWORD,
-	"asm": KEYWORD,
+	"raw":    KEYWORD,
+	"asm":    KEYWORD,
+	"inline": KEYWORD,
 
 	"true":  LITERAL,
 	"false": LITERAL,

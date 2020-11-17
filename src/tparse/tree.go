@@ -23,13 +23,42 @@ import "fmt"
 func errOut(message string, token Token) {
 	fmt.Println(message)
 	fmt.Println(token)
-	panic(token)
+	panic("AST Error")
 }
 
-// Parses a list of things as parameters
-func parseList(tokens *[]Token, tok, max int, param bool) (Node, int) {
+// Parse a list of values
+func parseValueList(tokens *[]Token, tok, max int) (Node, int) {
 	out := Node{}
-	out.Data = Token{Type: 10, Data: "list"}
+	out.Data = Token{Type: 9, Data: "list"}
+
+	currentType := Node{}
+	currentType.Data = Token{Data: "undefined"}
+
+	tok++
+
+	for ; tok < max; tok++ {
+		var tmp Node
+		tmp, tok = parseValue(tokens, tok, max)
+		makeParent(&out, tmp)
+
+		t := (*tokens)[tok]
+
+		switch t.Data {
+		case ")", "]", "}":
+			return out, tok
+		case ",":
+		default:
+			errOut("Error: unexpected token when parsing list, expected ',' or end of list", t)
+		}
+	}
+
+	return out, tok
+}
+
+// Parses a list of things
+func parseDefList(tokens *[]Token, tok, max int) (Node, int) {
+	out := Node{}
+	out.Data = Token{Type: 9, Data: "list"}
 
 	currentType := Node{}
 	currentType.Data = Token{Data: "undefined"}
@@ -39,8 +68,7 @@ func parseList(tokens *[]Token, tok, max int, param bool) (Node, int) {
 		t1 := (*tokens)[tok+1]
 
 		switch t1.Data {
-		case ")", "]", "}":
-		case ",":
+		case ")", "]", "}", ",":
 		default:
 			currentType, tok = parseType(tokens, tok, max, true)
 			t0 = (*tokens)[tok]
@@ -48,6 +76,7 @@ func parseList(tokens *[]Token, tok, max int, param bool) (Node, int) {
 		}
 
 		switch t0.Type {
+
 		case DEFWORD:
 			var tmp Node
 			if currentType.Data.Data == "undefined" {
@@ -63,7 +92,7 @@ func parseList(tokens *[]Token, tok, max int, param bool) (Node, int) {
 			makeParent(&out, typ)
 
 		default:
-			errOut("Error: unexpected token when parsing list, expected user-defined variable", t0)
+			errOut("Error: unexpected token when parsing list, expected user-defined variable or ", t0)
 		}
 
 		switch t1.Data {
