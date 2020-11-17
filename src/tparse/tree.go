@@ -43,7 +43,7 @@ func parseValueList(tokens *[]Token, tok, max int) (Node, int) {
 		case ",":
 			tok++
 		default:
-			errOut("Error: unexpected token when parsing a list of types", t)
+			errOut("Error: unexpected token when parsing a list of values", t)
 		}
 
 		tmp, tok = parseValue(tokens, tok, max)
