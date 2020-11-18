@@ -26,12 +26,10 @@ type Token struct {
 
 // Node represents a node in an AST
 type Node struct {
-	Parent *Node
-	Data   Token
-	Sub    []Node
+	Data Token
+	Sub  []Node
 }
 
 func makeParent(parent *Node, child Node) {
-	child.Parent = parent
 	parent.Sub = append(parent.Sub, child)
 }

@@ -194,7 +194,7 @@ func parseType(tokens *[]Token, tok, max int, param bool) (Node, int) {
 			errOut("Error: unexpected token when parsing type", t)
 		}
 
-		working.Sub = append(working.Sub, Node{Parent: working})
+		makeParent(working, Node{})
 		working = &(working.Sub[0])
 	}
 
@@ -220,7 +220,6 @@ func parseValue(tokens *[]Token, tok, max int) (Node, int) {
 func MakeTree(tokens *[]Token, file string) Node {
 	out := Node{}
 	out.Data = Token{9, file, 0, 0}
-	out.Parent = &out
 
 	tmp := Node{}
 	working := &tmp

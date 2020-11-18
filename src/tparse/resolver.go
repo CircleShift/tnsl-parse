@@ -19,5 +19,6 @@ package tparse
 //TODO: Everything
 
 /*
-	This file is suppost to contain code to include other files when asked, and represents the most important part of the pre-processor
+	This file is support code to include other files when asked, and represents the most important part of the pre-processor
+	Maybe we will do this when writing the native compiler though
 */
