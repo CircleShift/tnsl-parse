@@ -16,11 +16,26 @@
 
 package tparse
 
+func getClosing(start string) string {
+	switch start {
+	case "{":
+		return "}"
+	case "[":
+		return "]"
+	case "(":
+		return ")"
+	}
+
+	return ""
+}
+
 // Parse a list of values
 func parseValueList(tokens *[]Token, tok, max int) (Node, int) {
 	out := Node{}
 	out.Data = Token{Type: 10, Data: "list"}
 	var tmp Node
+
+	c := getClosing((*tokens)[tok].Data)
 
 	tok++
 
@@ -28,7 +43,7 @@ func parseValueList(tokens *[]Token, tok, max int) (Node, int) {
 		t := (*tokens)[tok]
 
 		switch t.Data {
-		case ")", "]", "}":
+		case c:
 			return out, tok
 		case ",":
 			tok++
@@ -43,7 +58,7 @@ func parseValueList(tokens *[]Token, tok, max int) (Node, int) {
 	return out, tok
 }
 
-// Parses a list of things
+// Parses a list of definitions
 func parseDefList(tokens *[]Token, tok, max int) (Node, int) {
 	out := Node{}
 	out.Data = Token{Type: 9, Data: "list"}
@@ -51,47 +66,32 @@ func parseDefList(tokens *[]Token, tok, max int) (Node, int) {
 	currentType := Node{}
 	currentType.Data = Token{Data: "undefined"}
 
+	c := getClosing((*tokens)[tok].Data)
+
+	tok++
+
 	for ; tok < max; tok++ {
-		t0 := (*tokens)[tok]
-		t1 := (*tokens)[tok+1]
-
-		switch t1.Data {
-		case ")", "]", "}", ",":
-		default:
-			currentType, tok = parseType(tokens, tok, max, true)
-			t0 = (*tokens)[tok]
-			t1 = (*tokens)[tok+1]
-		}
-
-		switch t0.Type {
-
-		case DEFWORD:
-			var tmp Node
-			if currentType.Data.Data == "undefined" {
-				errOut("Error: expected type before first parameter", t0)
-			} else if currentType.Data.Data == "type" {
-				tmp, tok = parseType(tokens, tok, max, true)
-			} else {
-				tmp = Node{Data: t0}
-			}
-
-			typ := currentType
-			makeParent(&typ, tmp)
-			makeParent(&out, typ)
-
-		default:
-			errOut("Error: unexpected token when parsing list, expected user-defined variable or ", t0)
-		}
-
-		switch t1.Data {
-		case ")", "]", "}":
+		switch (*tokens)[tok].Data {
+		case c:
 			return out, tok
 		case ",":
+			tok++
 		default:
-			errOut("Error: unexpected token when parsing list, expected ',' or end of list", t1)
+			errOut("Unexpected token when reading parameter definition", (*tokens)[tok])
 		}
 
-		tok++
+		t := (*tokens)[tok+1]
+
+		if t.Data != "," && t.Data != c {
+			currentType, tok = parseType(tokens, tok, max, true)
+		}
+
+		t = (*tokens)[tok]
+
+		if t.Type != DEFWORD {
+			errOut("Unexpected token in parameter definition. Expected variable identifier", t)
+		}
+
 	}
 
 	return out, tok
@@ -102,13 +102,15 @@ func parseTypeList(tokens *[]Token, tok, max int) (Node, int) {
 	out.Data = Token{Type: 9, Data: "list"}
 	var tmp Node
 
+	c := getClosing((*tokens)[tok].Data)
+
 	tok++
 
 	for ; tok < max; tok++ {
 		t := (*tokens)[tok]
 
 		switch t.Data {
-		case ")", "]", "}":
+		case c:
 			return out, tok
 		case ",":
 			tok++
@@ -117,6 +119,34 @@ func parseTypeList(tokens *[]Token, tok, max int) (Node, int) {
 		}
 
 		tmp, tok = parseType(tokens, tok, max, true)
+		out.Sub = append(out.Sub, tmp)
+	}
+
+	return out, tok
+}
+
+func parseStatementList(tokens *[]Token, tok, max int) (Node, int) {
+	out := Node{}
+	out.Data = Token{Type: 9, Data: "list"}
+	var tmp Node
+
+	c := getClosing((*tokens)[tok].Data)
+
+	tok++
+
+	for ; tok < max; tok++ {
+		t := (*tokens)[tok]
+
+		switch t.Data {
+		case c:
+			return out, tok
+		case ",":
+			tok++
+		default:
+			errOut("Error: unexpected token when parsing a list of statements", t)
+		}
+
+		tmp, tok = parseStatement(tokens, tok, max)
 		out.Sub = append(out.Sub, tmp)
 	}
 

@@ -2,8 +2,6 @@
 
 SRCDIR=$(pwd)
 
-GOPATH="$GOPATH:$SRCDIR"
-
-go env -w GOPATH=$GOPATH
+export GOPATH="$GOPATH:$SRCDIR"
 
 go build -o build/parse src/main.go

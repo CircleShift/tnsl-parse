@@ -127,6 +127,8 @@ var RESWORD = map[string]int{
 
 	"module": KEYWORD,
 	"export": KEYWORD,
+
+	"_": KEYWORD,
 }
 
 func checkResWord(s string) int {

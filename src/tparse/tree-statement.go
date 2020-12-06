@@ -15,3 +15,81 @@
 */
 
 package tparse
+
+func parseBlock(tokens *[]Token, tok, max int) (Node, int) {
+	out := Node{}
+	out.Data = Token{Type: 9, Data: "list"}
+	var tmp Node
+
+	tok++
+
+	for ; tok < max; tok++ {
+		t := (*tokens)[tok]
+
+		switch t.Data {
+		case ")", "]", "}":
+			return out, tok
+		case ",":
+			tok++
+		default:
+			errOut("Error: unexpected token when parsing a list of types", t)
+		}
+
+		tmp, tok = parseType(tokens, tok, max, true)
+		out.Sub = append(out.Sub, tmp)
+	}
+
+	return out, tok
+}
+
+func parseStatement(tokens *[]Token, tok, max int) (Node, int) {
+	out := Node{}
+	out.Data = Token{Type: 9, Data: "list"}
+	var tmp Node
+
+	tok++
+
+	for ; tok < max; tok++ {
+		t := (*tokens)[tok]
+
+		switch t.Data {
+		case ")", "]", "}":
+			return out, tok
+		case ",":
+			tok++
+		default:
+			errOut("Error: unexpected token when parsing a list of types", t)
+		}
+
+		tmp, tok = parseType(tokens, tok, max, true)
+		out.Sub = append(out.Sub, tmp)
+	}
+
+	return out, tok
+}
+
+func parseDef(tokens *[]Token, tok, max int) (Node, int) {
+	out := Node{}
+	out.Data = Token{Type: 9, Data: "list"}
+	var tmp Node
+
+	tok++
+
+	for ; tok < max; tok++ {
+		t := (*tokens)[tok]
+
+		switch t.Data {
+		case ")", "]", "}":
+			return out, tok
+		case ",":
+			tok++
+		default:
+			errOut("Error: unexpected token when parsing a list of types", t)
+		}
+
+		tmp, tok = parseType(tokens, tok, max, true)
+		out.Sub = append(out.Sub, tmp)
+	}
+
+	return out, tok
+}
