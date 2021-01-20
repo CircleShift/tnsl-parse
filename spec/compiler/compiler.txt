@@ -1,0 +1,18 @@
+The "compiler" of the TNSL language is formed of several parts, each discussed
+in their own file.
+
+	1) Parsing
+	
+		1a) The tokenizer - chews up .tnsl files and spits out tokens
+		1b) The file resolver - interperets import commands and creates a tree of files to compile
+		1c) The definer - 
+		1d) The AST generator - indexes tokens and provides some rudimentary syntax checking
+	
+	2) Validation
+
+		2a) The expander - expands pre-processor commands and macrosoperations
+		2b) The validator - checks all requirements for all functions and expressions are valid
+
+	3) Translation
+
+		3a) ???

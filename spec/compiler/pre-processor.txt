@@ -1,0 +1,5 @@
+A set of components in the compiler (all before the translator) which expand,
+resolve, and validate pre-processor directives into code which can be compiled
+
+Consists of the resolver in the parsor.
+The expander and part of the indexer in the validator.
