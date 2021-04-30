@@ -32,7 +32,7 @@ func getClosing(start string) string {
 // Parse a list of values
 func parseValueList(tokens *[]Token, tok, max int) (Node, int) {
 	out := Node{}
-	out.Data = Token{Type: 10, Data: "list"}
+	out.Data = Token{Type: 10, Data: "value"}
 	var tmp Node
 
 	c := getClosing((*tokens)[tok].Data)
@@ -58,48 +58,9 @@ func parseValueList(tokens *[]Token, tok, max int) (Node, int) {
 	return out, tok
 }
 
-// Parses a list of definitions
-func parseDefList(tokens *[]Token, tok, max int) (Node, int) {
-	out := Node{}
-	out.Data = Token{Type: 9, Data: "list"}
-
-	currentType := Node{}
-	currentType.Data = Token{Data: "undefined"}
-
-	c := getClosing((*tokens)[tok].Data)
-
-	tok++
-
-	for ; tok < max; tok++ {
-		switch (*tokens)[tok].Data {
-		case c:
-			return out, tok
-		case ",":
-			tok++
-		default:
-			errOut("Unexpected token when reading parameter definition", (*tokens)[tok])
-		}
-
-		t := (*tokens)[tok+1]
-
-		if t.Data != "," && t.Data != c {
-			currentType, tok = parseType(tokens, tok, max, true)
-		}
-
-		t = (*tokens)[tok]
-
-		if t.Type != DEFWORD {
-			errOut("Unexpected token in parameter definition. Expected variable identifier", t)
-		}
-
-	}
-
-	return out, tok
-}
-
 func parseTypeList(tokens *[]Token, tok, max int) (Node, int) {
 	out := Node{}
-	out.Data = Token{Type: 9, Data: "list"}
+	out.Data = Token{Type: 10, Data: "type"}
 	var tmp Node
 
 	c := getClosing((*tokens)[tok].Data)
@@ -127,7 +88,7 @@ func parseTypeList(tokens *[]Token, tok, max int) (Node, int) {
 
 func parseStatementList(tokens *[]Token, tok, max int) (Node, int) {
 	out := Node{}
-	out.Data = Token{Type: 9, Data: "list"}
+	out.Data = Token{Type: 10, Data: "statement"}
 	var tmp Node
 
 	c := getClosing((*tokens)[tok].Data)

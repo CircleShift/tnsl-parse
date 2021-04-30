@@ -87,7 +87,7 @@ Each file may contain 0 or more of the following:
 
 	6) Module blocks
 
-Code blocks are the only blocks which may contain statements (1.3)
+Code blocks and method blocks are the only blocks which may contain statements (1.3) and logical blocks.
 
 ----------------------------------
 
@@ -321,13 +321,19 @@ Statements make up the actual "doing" part of TNSL
 		1) Literal values
 
 		Literal numbers start with a decimal number, and can contain up to one non-number element:
-			0b1001 - valid
 			0 - valid
 			0.2341 - valid
 			120000 - valid
 
 			.34567 - invalid
-			0
+			0asd...kj - invalid
+
+			Special bases:
+
+			0b1001 - valid (binary)
+			0o0127 - valid (octal)
+			0xABCD - valid (hex)
+			0BZZZZ - valid (base 64)
 
 		These rules will be ammended and are mostly for ease of parsing in the first version of the language.
 
@@ -344,14 +350,24 @@ Statements make up the actual "doing" part of TNSL
 			"               - invalid
 
 		Literal characters use '' and either an escape character or a single character/code point between them
+			' '      - valid
+			'\u2000' - valid
+			'\\'     - valid
+			'\''     - valid
 
+			invalid:
+			'\u200220202asdasdaw qwe '
+			'\\asd asd '
+			'ab'
+			'\'
+			'
 
 		2) Call with a return
 
 		calling a function is as simple as naming a block of code and then calling it with parentheses
 
 		# Define
-		/; add ()
+		/; add
 		;/
 
 		# Call (not expression)
@@ -403,8 +419,7 @@ Statements make up the actual "doing" part of TNSL
 1.4: Types
 
 TNSL's type system consists of built-in types, user interfaces, and user structs.
-The built-in types are always on the stack, while user types can be on the stack, on the heap,
-or somewhere in between.
+The built-in types are always on the stack, while user types can be on the stack or the heap.
 
 	1.4.1: Built-in types
 		Built-in types are meant to be portable so that tnsl can be backported to whatever system one may want.
@@ -453,20 +468,17 @@ or somewhere in between.
 		uint64 - 64 bit unsigned int
 		float64 - 64 bit floating point
 		
-		simd (NICE):
-		not really sure how these work yet.  I'll get back to you
+		vect (NICE):
+		vector, simd, etc. not really sure how these work yet.  I'll get back to you
 
 		size 128 (NICE):
 		int128
 		uint128
 		float128
-		comp128 - complex 128 bit (2 64 bit floats in a trenchcoat)
 
 	
 	1.4.2: User defined types (stack)
 		Any structs defined not using pointers are automatically allocated on the stack.
-		The meta type is really a pointer, and so structs using it will not be completely on
-		the stack.
 
 		Structs are normally alligned to byte boundaries
 
@@ -474,11 +486,11 @@ or somewhere in between.
 
 		Defining a struct can be done as follows:
 
-		;struct <struct name> ( <optional inputs> ) { <list of members (may use inputs)> }
+		;struct <struct name> (<list of inputs (makes this a dynamic type)>) { <list of members (may use inputs)> }
 
 		e.g.
 
-		;struct Vector2 {x, y int32}
+		;struct Vector2 {int32 x, y}
 
 
 		Creating a variable from the struct can be done in two ways:
@@ -501,14 +513,14 @@ or somewhere in between.
 
 		method block example using operator
 
-		/; method ~Vector2
+		/; method Vector2
 
-			/; operator + (v ~Vector2)
+			/; operator + (~Vector2 v)
 				;self.x += `v.x
 				;self.y += `v.y
 			;/
 
-			/; dot (v ~Vector2) [int32]
+			/; dot (~Vector2 v) [int32]
 				;return self.x * `v.x + self.y * `v.y
 			;/
 
@@ -605,12 +617,12 @@ and how functions are first-class in TNSL
 
 		Anonymous blocks can be written only as scope, or with inputs and outputs for function calls.
 
-		/; call_func (to_call void(int32)[int32]) [int32]
+		/; call_func (void(int32)[int32] to_call) [int32]
 			;return to_call(5)
 		;/
 
 		/; provide_anon () [int32]
-			;return call_func(/; (a int32) [int32]
+			;return call_func(/; (int32 a) [int32]
 				;return a + 1
 			;/)
 		;/
@@ -867,3 +879,50 @@ Augmented boolean operators (a !<op> b) = !(a <op> b)
 >== - Same as !<
 
 <== - Same as !>
+
+----------------------------------
+
+Appendix C: Memory control (and speed) with each type of struct
+
+Each type of user-definable type or struct or interface grants
+it's own level of memory control.  These (and their ramifications) are
+listed here from low to high.
+
+---
+
+High level, low control structs (dynamic structs) are created when using
+the parameters for structs/types.  They allow variable length which can
+house different information at the cost of speed, memory, and control.
+
+These are the only type of structs which can house other dynamic structs.
+Dynamic structs can only be passes by reference due to undefined size at
+compilation.
+
+---
+
+Medium level, medium control structs (type structs) are created normaly
+through the struct keyword without parameters.  These structs are fixed
+length, but the compiler encodes extra info into them.  This means they
+get method resolution and override checks which may reduce speed of the
+application.
+
+---
+
+Low level, high control structs (raw structs) are created using the "raw"
+keyword before the "struct" keyword.  There are no frills, and method
+resolution is not performed for these structs.  These structs may not
+extend or be extended.  They may, however, implement interfaces.  They
+perform as a "what you see is what you get" kind of memory model.  They
+may not use parameters, and all internal types must be consistant length
+(no dynamic structs or dynamic type identifiers).
+
+---
+
+To summerize:
+All these structs can encode the same info, but as you get lower to
+the system, you get the bonus of speed and control while losing higher
+level functions provided by the language.
+
+This shouldn't matter much to most programmers unless they are doing
+embedded development, systems programming, or firmware programming,
+but it is still a consideration to make for time-sensitive applications.

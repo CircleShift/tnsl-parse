@@ -18,24 +18,55 @@ package tparse
 
 func parseBlock(tokens *[]Token, tok, max int) (Node, int) {
 	out := Node{}
-	out.Data = Token{Type: 9, Data: "list"}
+	out.Data = Token{Type: 10, Data: "block"}
 	var tmp Node
 
 	tok++
 
-	for ; tok < max; tok++ {
+	for ;tok < max; tok++{
+		t := (*tokens)[tok]
+
+		switch t.Type {
+		case DELIMIT:
+			if t.Data == "(" {
+
+			} else if t.Data == "(" {
+
+			} else {
+				goto BREAK
+			}
+		case DEFWORD:
+		case KEYWORD:
+		case LINESEP:
+			goto BREAK
+		}
+	}
+
+	BREAK:
+
+	for ;tok < max; {
 		t := (*tokens)[tok]
 
 		switch t.Data {
-		case ")", "]", "}":
+		case ";/", ";;", ";:":
 			return out, tok
-		case ",":
-			tok++
+		case ";":
+			tmp, tok = parseStatement(tokens, tok, max)
+		case "/;":
+			REBLOCK:
+			
+			tmp, tok = parseBlock(tokens, tok, max)
+
+			if (*tokens)[tok].Data == ";;" {
+				out.Sub = append(out.Sub, tmp)
+				goto REBLOCK
+			} else if (*tokens)[tok].Data == ";/" {
+				tok++
+			}
 		default:
-			errOut("Error: unexpected token when parsing a list of types", t)
+			errOut("Error: unexpected token when parsing a code block", t)
 		}
 
-		tmp, tok = parseType(tokens, tok, max, true)
 		out.Sub = append(out.Sub, tmp)
 	}
 
@@ -44,7 +75,7 @@ func parseBlock(tokens *[]Token, tok, max int) (Node, int) {
 
 func parseStatement(tokens *[]Token, tok, max int) (Node, int) {
 	out := Node{}
-	out.Data = Token{Type: 9, Data: "list"}
+	out.Data = Token{Type: 11, Data: ";"}
 	var tmp Node
 
 	tok++
@@ -52,10 +83,10 @@ func parseStatement(tokens *[]Token, tok, max int) (Node, int) {
 	for ; tok < max; tok++ {
 		t := (*tokens)[tok]
 
-		switch t.Data {
-		case ")", "]", "}":
+		switch t.Type {
+		case LINESEP, DELIMIT:
 			return out, tok
-		case ",":
+		case INLNSEP:
 			tok++
 		default:
 			errOut("Error: unexpected token when parsing a list of types", t)
@@ -70,7 +101,7 @@ func parseStatement(tokens *[]Token, tok, max int) (Node, int) {
 
 func parseDef(tokens *[]Token, tok, max int) (Node, int) {
 	out := Node{}
-	out.Data = Token{Type: 9, Data: "list"}
+	out.Data = Token{Type: 10, Data: "list"}
 	var tmp Node
 
 	tok++

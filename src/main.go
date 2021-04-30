@@ -37,7 +37,7 @@ func main() {
 	tokens := tparse.TokenizeFile(*inputFile)
 	tree := tparse.MakeTree(&tokens, *inputFile)
 
-	fd.WriteString(fmt.Sprint(tree))
+	fd.WriteString(fmt.Sprint(tree) + "\n")
 
 	fd.Close()
 }

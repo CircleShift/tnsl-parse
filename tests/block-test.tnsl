@@ -46,15 +46,22 @@
 
 /; module vec
 
-	;struct Vector2 {x, y int}
+	;struct Vector2 {int32 x, y}
 
-	/;method ~Vector2
+	/;method Vector2
 
-		/; operator + (v ~Vector2)
+		/; operator + (~Vector2 v)
 			;self.x += `v.x
 			;self.y += `v.y
 		;/
 
+        /; operator + (int32 a)
+			;self.x += a
+			;self.y += a
+		;/
+
 	;/
+
+    ;struct FVector2 () {}
 
 ;/

@@ -3,3 +3,7 @@ resolve, and validate pre-processor directives into code which can be compiled
 
 Consists of the resolver in the parsor.
 The expander and part of the indexer in the validator.
+
+Special (compiler specififc) definitions can be added with _<compiler>_<variable name>
+
+E.X.  if the official implementation wanted to provide the exact time of the compilation, it could use _TNSLC_TIME_NOW for instance

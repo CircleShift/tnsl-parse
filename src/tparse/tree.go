@@ -18,7 +18,8 @@ package tparse
 
 import "fmt"
 
-// ID 9 = ast thing
+// ID 9 = ast root
+// ID 10 = ast list
 
 func errOut(message string, token Token) {
 	fmt.Println(message)
@@ -32,7 +33,6 @@ func MakeTree(tokens *[]Token, file string) Node {
 	out.Data = Token{9, file, 0, 0}
 
 	tmp := Node{}
-	working := &tmp
 
 	max := len(*tokens)
 
@@ -40,19 +40,18 @@ func MakeTree(tokens *[]Token, file string) Node {
 		t := (*tokens)[tok]
 		switch t.Data {
 		case "/;":
-
+			tmp, tok = parseBlock(tokens, tok, max)
 		case ";":
-
+			tmp, tok = parseStatement(tokens, tok, max)
 		case "/:":
-
+			tmp = Node{}
 		case ":":
-
+			tmp = Node{}
 		default:
 			errOut("Unexpected token in file root", t)
 		}
-		tmp = Node{Data: t}
 
-		working.Sub = append(working.Sub, tmp)
+		out.Sub = append(out.Sub, tmp)
 	}
 
 	return out

@@ -2,17 +2,11 @@ PARSECMD=../build/parse
 PARSEFILE=" "
 
 parse () {
-    $PARSECMD -in $PARSEFILE-test.tnsl -out $PARSEFILE-test.tnt
+    $PARSECMD -in $1-test.tnsl -out $1-test.tnt
 }
 
-PARSEFILE=block
-parse
-
-PARSEFILE=comment
-parse
-
-PARSEFILE=literal
-parse
-
-PARSEFILE=parameter
-parse
+parse block
+parse comment
+parse literal
+parse parameter
+parse statement

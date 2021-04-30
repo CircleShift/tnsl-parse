@@ -10,9 +10,14 @@ in their own file.
 	
 	2) Validation
 
-		2a) The expander - expands pre-processor commands and macrosoperations
+		2a) The expander - expands pre-processor commands and macro operations
 		2b) The validator - checks all requirements for all functions and expressions are valid
 
 	3) Translation
 
-		3a) ???
+		3a) Variable resolver - chooses and creates an internal model of where variables are on the stack, as well as calling conventions for functions
+		3b) Type translator - places and translates types (internal and external)
+		3c) Container resolver - checks container (elf, exe, dll, app, out, etc.) and decides how to map the types for future linking
+		3d) Final translation - translates all logic and expressions into native binary code
+		3e) Optimization
+		3f) Container Writer - writes the final output of the previous steps into the specified container

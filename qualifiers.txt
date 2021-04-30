@@ -1,0 +1,71 @@
+block qualifier list:
+
+interface**
+enum**
+loop
+match
+if
+else
+method*
+override*
+raw
+inline
+export
+module
+case
+default
+operator*
+
+
+
+structure of blocks:
+
+(block start)
+    interface (defword)
+    enum (defword) (return type list)
+
+    loop (bool params) (loop rets)
+    if (bool params)
+    else
+    	if (bool params)***
+    
+    match (match params) (case blocks)
+    case (case params)
+    default
+
+    override***
+        method (defword) (function params) (function rets)
+        operator <unary operator> (ret)
+        operator <binary operator> (param) (ret)
+    
+    export***
+        module (defword)
+    
+    inline***
+        raw***
+            (defword) (function params) (function rets)
+(block end)
+
+
+
+structure of statements:
+
+(type) (definition list)
+(value)
+(keyword) (parameters if required)
+
+
+
+keyword statements:
+
+delete (list of defwords)*
+struct (defword) (struct params)*
+continue
+break
+label (defword)
+goto (defword)
+asm (defstring)
+
+*   - type extension
+**  - advanced type extension
+*** - optional modifier

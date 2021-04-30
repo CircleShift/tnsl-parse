@@ -1,0 +1,93 @@
+This is the LIBTS specification, a document related to the definition of the TNSL language,
+meta-language, it's usage, and where it's standard libraries may be ported.
+
+Document version (semver): 0.0.1
+Main Author: Kyle Gunger
+
+License: Apache 2.0
+
+----------------------------------
+
+Contents:
+
+Part 1 -- About the Library
+	1.1: libts and TNSL
+    1.2: Short overview
+
+Part 2 -- Library Features
+	2.1: Bitwise operations
+	2.2: Standard algorithms
+	2.3: Continer structs
+    2.4: Standard abstractions
+    2.5: Time related APIs
+    2.6: Method resolution
+
+----------------------------------
+
+Part 1: About the Library
+
+----------------------------------
+
+Section 1: libts and TNSL
+
+    libts or the TNSL standard library is a library to be found on almost all systems containing
+    a TNSL implimentation.  The library contains both common APIs which ease common programming
+    feats as well as core program logic for the more high-level features of TNSL.  TNSL can
+    indeed run without a libts, however doing so limits many parts of the language to the "raw"
+    variants.  These limited features include structs, types, and interfaces primarially.
+
+    libts contains a standard method resolution algorithm such that method calls can be resolved
+    on runtime for the high level dynamic type system.
+
+----------------------------------
+
+Section 2: Short overview
+
+    The library contains many standard algoritims and abstractions found in other languages such
+    as C, as well as helpers for these containers.
+
+
+----------------------------------
+
+Part 2: Library Features
+
+----------------------------------
+
+Section 1: Bitwise Operations
+
+----------------------------------
+
+Section 2: Standard algorithms
+
+----------------------------------
+
+Section 3: Continer structs
+
+----------------------------------
+
+Section 4: Standard abstractions
+
+----------------------------------
+
+Section 5: Time related APIs
+
+    Time is important for any program, and libts provides an interface through which to query
+    the operating system for it.  libts also provides conversion, projection, and timing features
+    so that programs can make use of user inputs relating to time.  If bugs in the time projection
+    of the library, they will be fixed.  No reguard to existing data should be given, accuracy is
+    the goal above breakage.
+
+    That being said, the library should attempt to work around erronious data in a way that
+    provides an alternative date if the data is in a good format but pointing to a non-existant
+    date.  An error code will still be thrown in these cases, but indicating that the date does
+    not exist, not that the input was complete garbage.  Programs may catch errors in any way
+    they choose.
+
+----------------------------------
+
+Section 6: Method resolution
+
+    As previously stated, the library performs method resolution for calls on high-level types.
+    In an iex file, this is done by finding the associated IEX_TYPE of the object and following
+    along the "supers" array and checking with the "methods" arrays until the IEX_TYPE contains
+    a definition for the method called which fits the caller's arguments.

@@ -1,0 +1,128 @@
+This is the IEX file specification.
+
+Document version (semver): 0.0.1
+Main Author: Kyle Gunger
+
+License: Apache 2.0
+
+----------------------------------
+
+Contents:
+
+Organization
+
+----------------------------------
+
+Organization
+
+Magic number starts the file "IEX" or 0x49 0x45 0x58
+
+The header of the file can be represented as such
+
+;struct IEX_HEAD {
+    raw {3}char     # Always "IEX"
+        magic,
+        
+    {}char
+        name,
+        arch,
+        os,
+    
+    uint8           # Version info
+        major,
+        minor,
+        patch,
+                    # OS abi info
+        os_major,
+        os_minor,
+        os_patch,
+    
+    bool            # Tells loader that the file holds a main function
+        can_execute,
+
+    ~void ({}{}char args) [int]
+                    # Address of main in file
+        start_addr,
+
+    {}IEX_SECTION
+        sections,
+
+    {}IEX_LIB
+        dependencies,
+    
+    IEX_MODULE
+        self
+}
+
+a section is defined as
+
+;struct IEX_SECTION {
+    {}char
+        name,
+    
+    uint8       # Denotes dependency, symbol table, data, bss, text, etc.
+        type,
+
+    ~void       # Points to start and end of section
+        start,
+        end
+}
+
+;struct IEX_LIB {
+    {}char
+        name,
+    
+    uint8       # Version info
+        major,
+        minor,
+        patch
+}
+
+;struct IEX_MODULE {
+    {}char
+        name,
+    
+    {}IEX_FUNCTION
+        func,
+    
+    {}IEX_TYPE
+        types,
+
+    {}IEX_MODULE
+        sub
+}
+
+;struct IEX_FUNCTION {
+    {}char
+        name,
+    
+    uint32
+        overload,
+        bytes_in,
+        bytes_out,
+    
+    ~void
+        addr
+}
+
+;struct IEX_TYPE {
+    {}char
+        name,
+    
+    bool
+        raw_struct,
+        interface,
+        dynamic,
+
+    uint32
+        size,
+    
+    {}IEX_FUNCTION
+        methods,
+    
+    {}IEX_TYPE
+        supers,
+
+    ~void
+        addr
+}
