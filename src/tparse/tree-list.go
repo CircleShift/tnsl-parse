@@ -58,6 +58,36 @@ func parseValueList(tokens *[]Token, tok, max int) (Node, int) {
 	return out, tok
 }
 
+// Parse list of parameters
+func parseParamList(tokens *[]Token, tok, max int) (Node, int) {
+	out := Node{}
+	out.Data = Token{Type: 10, Data: "param"}
+	var tmp Node
+
+	c := getClosing((*tokens)[tok].Data)
+
+	tok++
+
+	for ; tok < max; tok++ {
+		t := (*tokens)[tok]
+
+		switch t.Data {
+		case c:
+			return out, tok
+		case ",":
+			tok++
+		default:
+			errOut("Error: unexpected token when parsing a list of values", t)
+		}
+
+		tmp, tok = parseValue(tokens, tok, max)
+		out.Sub = append(out.Sub, tmp)
+	}
+
+	return out, tok
+}
+
+// Parse a list of types
 func parseTypeList(tokens *[]Token, tok, max int) (Node, int) {
 	out := Node{}
 	out.Data = Token{Type: 10, Data: "type"}

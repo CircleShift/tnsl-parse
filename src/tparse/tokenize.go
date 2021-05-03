@@ -164,6 +164,8 @@ func stripBlockComments(t []Token) []Token {
 			case "#/":
 				bc = false
 				continue
+			default:
+				continue
 			}
 		} else if bc {
 			continue

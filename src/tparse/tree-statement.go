@@ -29,9 +29,11 @@ func parseBlock(tokens *[]Token, tok, max int) (Node, int) {
 		switch t.Type {
 		case DELIMIT:
 			if t.Data == "(" {
-
-			} else if t.Data == "(" {
-
+				tmp, tok = parseParamList(tokens, tok, max)
+				out.Sub = append(out.Sub, tmp)
+			} else if t.Data == "[" {
+				tmp, tok = parseTypeList(tokens, tok, max)
+				out.Sub = append(out.Sub, tmp)
 			} else {
 				goto BREAK
 			}
