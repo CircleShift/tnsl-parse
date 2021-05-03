@@ -165,7 +165,9 @@ func stripBlockComments(t []Token) []Token {
 				bc = false
 				continue
 			default:
-				continue
+				if bc {
+					continue
+				}
 			}
 		} else if bc {
 			continue
