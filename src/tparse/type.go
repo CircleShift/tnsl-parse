@@ -50,7 +50,7 @@ var PREWORDS = []string{
 	"extern",
 	"size",
 	"align",
-	"origin",
+	"address",
 	"rootfile",
 	"if",
 	"else",
@@ -130,8 +130,6 @@ var RESWORD = map[string]int{
 
 	"module": KEYWORD,
 	"export": KEYWORD,
-
-	"drop": KEYWORD,
 }
 
 func checkResWord(s string) int {

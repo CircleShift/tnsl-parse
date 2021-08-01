@@ -2,7 +2,7 @@
 
 SRCDIR=$(pwd)
 
-export GOPATH="$GOPATH:$SRCDIR"
+GOPATH="$GOPATH:$SRCDIR"
+GO111MODULE=off
 
-go env -w GO111MODULE=off
-go build -o build/parse src/main.go
+go build -o build/${1} src/${1}.go

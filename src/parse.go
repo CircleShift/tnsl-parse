@@ -24,6 +24,7 @@ import "os"
 func main() {
 	inputFile := flag.String("in", "", "The file to parse")
 	outputFile := flag.String("out", "out.tnt", "The file to store the node tree")
+	writeLevel := flag.Int("writelevel", 1, "The level of parsing to write to the file (for debugging)")
 
 	flag.Parse()
 
@@ -35,9 +36,14 @@ func main() {
 	}
 
 	tokens := tparse.TokenizeFile(*inputFile)
-	tree := tparse.MakeTree(&tokens, *inputFile)
-
-	fd.WriteString(fmt.Sprint(tree) + "\n")
-
+	
+	switch *writeLevel {
+	case 0:
+		fd.WriteString(fmt.Sprint(tokens) + "\n")
+	case 1:
+		tree := tparse.MakeTree(&tokens, *inputFile)
+		fd.WriteString(fmt.Sprint(tree) + "\n")
+	}
+	
 	fd.Close()
 }

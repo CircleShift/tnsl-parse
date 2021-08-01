@@ -14,28 +14,33 @@
    limitations under the License.
 */
 
-package tparse
+package main
 
-// Token represents a token in a program
-type Token struct {
-	Type int
-	Data string
-	Line int
-	Char int
-}
+import "fmt"
+import "tparse"
+import "texec"
+import "flag"
 
-// Node represents a node in an AST
-type Node struct {
-	Data Token
+func main() {
+	inputFile := flag.String("in", "", "The file to execute")
+	progFlags := flag.String("flags", "", "Flags for the executing program")
 
-    IsBlock  bool
-    BlockQs  []Token
-    BlockIn  []Node
-    BlockOut []Node
+	flag.Parse()
 
-	Sub  []Node
-}
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
 
-func makeParent(parent *Node, child Node) {
-	parent.Sub = append(parent.Sub, child)
+	tokens := tparse.TokenizeFile(*inputFile)
+	
+	switch *writeLevel {
+	case 0:
+		fd.WriteString(fmt.Sprint(tokens) + "\n")
+	case 1:
+		tree := tparse.MakeTree(&tokens, *inputFile)
+		fd.WriteString(fmt.Sprint(tree) + "\n")
+	}
+	
+	fd.Close()
 }

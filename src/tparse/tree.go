@@ -19,7 +19,7 @@ package tparse
 import "fmt"
 
 // ID 9 = ast root
-// ID 10 = ast list
+// ID 10 = ast token
 
 func errOut(message string, token Token) {
 	fmt.Println(message)

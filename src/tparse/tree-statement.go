@@ -23,6 +23,9 @@ func parseBlock(tokens *[]Token, tok, max int) (Node, int) {
 
 	tok++
 
+	def := Node{}
+	def.Data = Token{Type: 10, Data: "blockdef"}
+
 	for ;tok < max; tok++{
 		t := (*tokens)[tok]
 
@@ -30,14 +33,15 @@ func parseBlock(tokens *[]Token, tok, max int) (Node, int) {
 		case DELIMIT:
 			if t.Data == "(" {
 				tmp, tok = parseParamList(tokens, tok, max)
-				out.Sub = append(out.Sub, tmp)
+				def.Sub = append(out.Sub, tmp)
 			} else if t.Data == "[" {
 				tmp, tok = parseTypeList(tokens, tok, max)
-				out.Sub = append(out.Sub, tmp)
+				def.Sub = append(out.Sub, tmp)
 			} else {
 				goto BREAK
 			}
 		case DEFWORD:
+
 		case KEYWORD:
 		case LINESEP:
 			goto BREAK
@@ -45,6 +49,8 @@ func parseBlock(tokens *[]Token, tok, max int) (Node, int) {
 	}
 
 	BREAK:
+
+	out.Sub = append(out.Sub, def)
 
 	for ;tok < max; {
 		t := (*tokens)[tok]
