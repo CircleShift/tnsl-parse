@@ -19,18 +19,20 @@ package tparse
 // Ops order in TNSL
 // Cast/Paren > Address > Get > Inc/Dec > Math > Bitwise > Logic
 
-var ORDER = map[string]int{
-	// Address of
+var UNARY = map[string]int {
 	"~": 0,
-	// De-ref
 	"`": 0,
+	"++": 2,
+	"--": 2,
+	"!": 6,
 
+}
+
+var ORDER = map[string]int{
 	// Get
 	".": 1,
 
-	// Inc/Dec
-	"++": 2,
-	"--": 2,
+	"is": 2,
 
 	// Multiplication
 	"*": 3,
@@ -61,9 +63,6 @@ var ORDER = map[string]int{
 	"!|": 6,
 	"!^": 6,
 
-	// Not (prefix any bool or bitwise)
-	"!": 6,
-
 	// Boolean and
 	"&&": 7,
 	// Boolean or
@@ -82,23 +81,133 @@ var ORDER = map[string]int{
 
 	"!>": 7,
 	"!<": 7,
+
+	// Assignement
+	"=": 8,
 }
 
+// Works? Please test. 
+func parseUnaryOps(tokens *[]Token, tok, max int) (Node) {
+	out := Node{Data: Token{Type: 10, Data: "value"}, IsBlock: false}
+	val := false
+
+	// Pre-value op scan
+	for ; tok < max && !val; tok++ {
+		t := (*tokens)[tok]
+		switch t.Type {
+		case DEFWORD:
+			fallthrough
+		case LITERAL:
+			out.Sub = append(out.Sub, Node{Data: t, IsBlock: false})
+			val = true
+		case AUGMENT:
+			_, prs := UNARY[t.Data]
+			if !prs {
+				errOut("Parser bug!  Operator failed to load into AST.", t)
+			} else {
+				out.Sub = append(out.Sub, Node{Data: t, IsBlock: false})
+			}
+		default:
+			errOut("Unexpected token in value declaration", t)
+		}
+	}
+
+	// Sanity check: make sure there's actually a value here
+	if !val {
+		errOut("Expected to find value, but there wasn't one", (*tokens)[max])
+	}
+
+	// Post-value op scan
+	for ; tok < max; tok++ {
+		t := (*tokens)[tok]
+		switch t.Type {
+		case DELIMIT:
+			var tmp Node
+			switch t.Data {
+			case "(": // Function call
+				//TODO: parse list of values here
+			case "[": // Typecasting
+				tmp, tok = parseType(tokens, tok, max, false)
+				out.Sub = append(out.Sub, tmp)
+			case "{": // Array indexing
+				tmp = Node{Data: Token{Type: 10, Data: "index"}}
+				var tmp2 Node
+				tmp2, tok = parseValue(tokens, tok + 1, max)
+				tmp.Sub = append(tmp.Sub, tmp2)
+				out.Sub = append(out.Sub, tmp)
+			default:
+				errOut("Unexpected delimiter when parsing value", t)
+			}
+		case AUGMENT:
+			_, prs := UNARY[t.Data]
+			if !prs {
+				errOut("Parser bug!  Operator failed to load into AST.", t)
+			} else {
+				out.Sub = append(out.Sub, Node{Data: t, IsBlock: false})
+			}
+		default:
+			errOut("Unexpected token in value declaration", t)
+		}
+	}
+
+	return out
+}
+
+//  Works?  Please test.
+func parseBinaryOp(tokens *[]Token, tok, max int) (Node) {
+	out := Node{IsBlock: false}
+	first := tok
+	var high, highOrder, bincount int = first, 8, 0
+
+	// Find first high-order op
+	for ; tok < max; tok++ {
+		t := (*tokens)[tok]
+		if t.Type == AUGMENT {
+			order, prs := ORDER[t.Data]
+			if !prs {
+				continue
+			} else if order > highOrder {
+				high, highOrder = tok, order
+			}
+			// TODO: Add in case for the "is" operator
+			bincount++
+		}
+	}
+
+	out.Data = (*tokens)[high]
+
+	if bincount == 0 {
+		// No binops means we have a value to parse.  Parse all unary ops around it.
+		return parseUnaryOps(tokens, first, max)
+	} else {
+		// Recursive split to lower order operations
+		out.Sub = append(out.Sub, parseBinaryOp(tokens, first, high))
+		out.Sub = append(out.Sub, parseBinaryOp(tokens, high + 1, max))
+	}
+
+	return out
+}
+
+// TODO: fix this
 func parseValue(tokens *[]Token, tok, max int) (Node, int) {
-	out := Node{}
+	first := tok
+	
 
 	for ; tok < max; tok++ {
 		t := (*tokens)[tok]
 		switch t.Type {
-		case LITERAL:
-		case DEFWORD:
+		case LINESEP:
+		case INLNSEP:
 		case DELIMIT:
+		case AUGMENT:
+		case LITERAL:
 		}
 	}
 
-	return out, tok
+	return parseBinaryOp(tokens, first, tok), tok
 }
 
+// TODO: make sure this actually works
 func parseVoidType(tokens *[]Token, tok, max int) (Node, int) {
 	out := Node{}
 	working := &out
@@ -148,8 +257,9 @@ func parseVoidType(tokens *[]Token, tok, max int) (Node, int) {
 	return out, tok
 }
 
+// TODO: make sure this actually works
 func parseType(tokens *[]Token, tok, max int, param bool) (Node, int) {
-	out := Node{}
+	out := Node{Data: Token{Type: 10, Data: "type"}}
 	working := &out
 
 	for ; tok < max; tok++ {

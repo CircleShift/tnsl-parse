@@ -56,6 +56,7 @@ var PREWORDS = []string{
 	"else",
 	"abi",
 	//"mark",
+	"using",
 }
 
 func checkPreWord(s string) int {
@@ -92,7 +93,7 @@ var RESWORD = map[string]int{
 	"struct":    KEYWORD,
 	"interface": KEYWORD,
 	"enum":      KEYWORD,
-	"is":        KEYWORD,
+	"is":        AUGMENT,
 	"extends":   KEYWORD,
 
 	"loop":     KEYWORD,
@@ -126,6 +127,8 @@ var RESWORD = map[string]int{
 	"true":  LITERAL,
 	"false": LITERAL,
 
+	"alloc":  KEYWORD,
+	"calloc": KEYWORD,
 	"delete": KEYWORD,
 
 	"module": KEYWORD,

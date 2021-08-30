@@ -44,9 +44,9 @@ func MakeTree(tokens *[]Token, file string) Node {
 		case ";":
 			tmp, tok = parseStatement(tokens, tok, max)
 		case "/:":
-			tmp = Node{}
+			tmp, tok = parsePreBlock(tokens, tok + 1, max)
 		case ":":
-			tmp = Node{}
+			tmp, tok = parsePre(tokens, tok + 1, max)
 		default:
 			errOut("Unexpected token in file root", t)
 		}

@@ -1,6 +1,6 @@
 #Comment like this
 
-/##
+/#
   Or like this (blocks begin with /<symbol> and end with <symbol>/)
   Block Comment
 #/
@@ -9,8 +9,8 @@
 #/
 
 # Preprocessor directives are like this
-# Import from library using '
-:import 'what/what.tnsl' a
+# Import an external module from library using '
+:import 'what'
 # Import from local file using "
 :import "what/what.tnsl"
 
@@ -65,11 +65,11 @@
 
 
 
-# The struct keyword is followed by [name] {values}
-;struct [s1] {string Name, string Message = "Default message (c-style strings)"}
+# The struct keyword is followed by <name> {values}
+;struct s1 {string Name, string Message = "Default message (c-style strings)"}
 
 # Most people should declare as such:
-;struct [s1] {
+;struct s1 {
     string Name,
     string Message = "Default message (c-style strings)"
 }
@@ -156,7 +156,7 @@
 
 
 # Dumb generic type struct
-; struct [gen] (type T) {
+; struct gen (type T) {
   T i
 }
 
