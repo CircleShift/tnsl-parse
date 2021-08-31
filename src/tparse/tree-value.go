@@ -95,6 +95,17 @@ func parseUnaryOps(tokens *[]Token, tok, max int) (Node) {
 	for ; tok < max && !val; tok++ {
 		t := (*tokens)[tok]
 		switch t.Type {
+		case DELIMIT:
+			var tmp Node
+			switch t.Data {
+			case "(": // Parenthetical value
+				return parseBinaryOp(tokens, tok, max)
+			case "{": // Array or struct evaluation
+				tmp, _ = parseValueList(tokens, tok, max)
+				return tmp
+			default:
+				errOut("Unexpected delimiter when parsing value", t)
+			}
 		case DEFWORD:
 			fallthrough
 		case LITERAL:
@@ -125,7 +136,8 @@ func parseUnaryOps(tokens *[]Token, tok, max int) (Node) {
 			var tmp Node
 			switch t.Data {
 			case "(": // Function call
-				//TODO: parse list of values here
+				tmp, tok = parseValueList(tokens, tok, max)
+				out.Sub = append(out.Sub, tmp)
 			case "[": // Typecasting
 				tmp, tok = parseType(tokens, tok, max, false)
 				out.Sub = append(out.Sub, tmp)
@@ -158,13 +170,36 @@ func parseBinaryOp(tokens *[]Token, tok, max int) (Node) {
 	out := Node{IsBlock: false}
 	first := tok
 	var high, highOrder, bincount int = first, 8, 0
+	var curl, brak, parn int = 0, 0, 0
 
 	// Find first high-order op
 	for ; tok < max; tok++ {
 		t := (*tokens)[tok]
-		if t.Type == AUGMENT {
+		if t.Type == DELIMIT {
+			switch t.Data {
+			case "{":
+				curl++
+			case "[":
+				brak++
+			case "(":
+				parn++
+			
+			case "}":
+				curl--
+			case "]":
+				brak--
+			case ")":
+				parn--
+			}
+
+			if curl < 0 || brak < 0 || parn < 0 {
+				if curl > 0 || brak > 0 || parn > 0 {
+					errOut("Un-matched closing delimiter when parsing a type.", t)
+				}
+			}
+		} else if t.Type == AUGMENT {
 			order, prs := ORDER[t.Data]
-			if !prs {
+			if !prs || curl > 0 || brak > 0 || parn > 0 {
 				continue
 			} else if order > highOrder {
 				high, highOrder = tok, order
@@ -191,18 +226,47 @@ func parseBinaryOp(tokens *[]Token, tok, max int) (Node) {
 // TODO: fix this
 func parseValue(tokens *[]Token, tok, max int) (Node, int) {
 	first := tok
-	
+	var curl, brak, parn int = 0, 0, 0
 
 	for ; tok < max; tok++ {
 		t := (*tokens)[tok]
 		switch t.Type {
 		case LINESEP:
+			if curl > 0 || brak > 0 || parn > 0 {
+				errOut("Encountered end of statement before all delimiter pairs were closed while looking for the end of a value.", t)
+			}
+			fallthrough
 		case INLNSEP:
+			if curl > 0 || brak > 0 || parn > 0 {
+				continue
+			}
+			goto PARSEBIN
 		case DELIMIT:
-		case AUGMENT:
-		case LITERAL:
+			switch t.Data {
+			case "{":
+				curl++
+			case "[":
+				brak++
+			case "(":
+				parn++
+			
+			case "}":
+				curl--
+			case "]":
+				brak--
+			case ")":
+				parn--
+			}
+
+			if curl < 0 || brak < 0 || parn < 0 {
+				if curl > 0 || brak > 0 || parn > 0 {
+					errOut("Un-matched closing delimiter when parsing a value.", t)
+				}
+			}
 		}
 	}
+
+	PARSEBIN:
 
 	return parseBinaryOp(tokens, first, tok), tok
 }
