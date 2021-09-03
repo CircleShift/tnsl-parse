@@ -1,17 +1,17 @@
 /*
-   Copyright 2020 Kyle Gunger
+	Copyright 2020 Kyle Gunger
 
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
+	Licensed under the Apache License, Version 2.0 (the "License");
+	you may not use this file except in compliance with the License.
+	You may obtain a copy of the License at
 
-       http://www.apache.org/licenses/LICENSE-2.0
+		http://www.apache.org/licenses/LICENSE-2.0
 
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
+	Unless required by applicable law or agreed to in writing, software
+	distributed under the License is distributed on an "AS IS" BASIS,
+	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	See the License for the specific language governing permissions and
+	limitations under the License.
 */
 
 package tparse
@@ -98,17 +98,14 @@ func parseUnaryOps(tokens *[]Token, tok, max int) (Node) {
 		case DELIMIT:
 			var tmp Node
 			switch t.Data {
-			case "(": // Parenthetical value
-				return parseBinaryOp(tokens, tok, max)
-			case "{": // Array or struct evaluation
-				tmp, _ = parseValueList(tokens, tok, max)
-				return tmp
+			case "{", "(": // Array or struct evaluation, parenthetical value
+				tmp, tok = parseValueList(tokens, tok, max)
+				out.Sub = append(out.Sub, tmp)
+				val = true
 			default:
 				errOut("Unexpected delimiter when parsing value", t)
 			}
-		case DEFWORD:
-			fallthrough
-		case LITERAL:
+		case LITERAL, DEFWORD:
 			out.Sub = append(out.Sub, Node{Data: t, IsBlock: false})
 			val = true
 		case AUGMENT:
@@ -137,19 +134,17 @@ func parseUnaryOps(tokens *[]Token, tok, max int) (Node) {
 			switch t.Data {
 			case "(": // Function call
 				tmp, tok = parseValueList(tokens, tok, max)
-				out.Sub = append(out.Sub, tmp)
 			case "[": // Typecasting
-				tmp, tok = parseType(tokens, tok, max, false)
-				out.Sub = append(out.Sub, tmp)
+				tmp, tok = parseTypeList(tokens, tok, max)
 			case "{": // Array indexing
 				tmp = Node{Data: Token{Type: 10, Data: "index"}}
 				var tmp2 Node
 				tmp2, tok = parseValue(tokens, tok + 1, max)
 				tmp.Sub = append(tmp.Sub, tmp2)
-				out.Sub = append(out.Sub, tmp)
 			default:
 				errOut("Unexpected delimiter when parsing value", t)
 			}
+			out.Sub = append(out.Sub, tmp)
 		case AUGMENT:
 			_, prs := UNARY[t.Data]
 			if !prs {
@@ -165,7 +160,7 @@ func parseUnaryOps(tokens *[]Token, tok, max int) (Node) {
 	return out
 }
 
-//  Works?  Please test.
+// Works? Please test.
 func parseBinaryOp(tokens *[]Token, tok, max int) (Node) {
 	out := Node{IsBlock: false}
 	first := tok
@@ -223,7 +218,7 @@ func parseBinaryOp(tokens *[]Token, tok, max int) (Node) {
 	return out
 }
 
-// TODO: fix this
+// Works? Please test.
 func parseValue(tokens *[]Token, tok, max int) (Node, int) {
 	first := tok
 	var curl, brak, parn int = 0, 0, 0
@@ -235,7 +230,7 @@ func parseValue(tokens *[]Token, tok, max int) (Node, int) {
 			if curl > 0 || brak > 0 || parn > 0 {
 				errOut("Encountered end of statement before all delimiter pairs were closed while looking for the end of a value.", t)
 			}
-			fallthrough
+			goto PARSEBIN
 		case INLNSEP:
 			if curl > 0 || brak > 0 || parn > 0 {
 				continue
@@ -258,9 +253,15 @@ func parseValue(tokens *[]Token, tok, max int) (Node, int) {
 				parn--
 			}
 
+			// TODO: Support blocks as values
+
 			if curl < 0 || brak < 0 || parn < 0 {
 				if curl > 0 || brak > 0 || parn > 0 {
 					errOut("Un-matched closing delimiter when parsing a value.", t)
+				} else if curl + brak + parn == -1 {
+					goto PARSEBIN
+				} else {
+					errOut("Strange bracket values detected when parsing value.  Possibly a parser bug.", t)
 				}
 			}
 		}
@@ -271,52 +272,42 @@ func parseValue(tokens *[]Token, tok, max int) (Node, int) {
 	return parseBinaryOp(tokens, first, tok), tok
 }
 
-// TODO: make sure this actually works
-func parseVoidType(tokens *[]Token, tok, max int) (Node, int) {
-	out := Node{}
-	working := &out
+// Works? Please test.
+func parseTypeParams(tokens *[]Token, tok, max int) (Node, int) {
+	out := Node{Data: (*tokens)[tok], IsBlock: false}
+	tok++
 
 	for ; tok < max; tok++ {
 		t := (*tokens)[tok]
+		tmp := Node{IsBlock: false}
 		switch t.Type {
-		case AUGMENT:
-			if t.Data != "~" && t.Data != "`" {
-				errOut("Error: unexpected augment token when parsing type", t)
-			}
-			working.Data = t
-
-		case KEYTYPE:
-			if t.Data == "void" {
-				*working, tok = parseVoidType(tokens, tok, max)
-			} else {
-				working.Data = t
-			}
-
-			return out, tok
-
-		case DEFWORD:
-
 		case DELIMIT:
-			if t.Data == "{" && tok < max-1 {
-				if (*tokens)[tok+1].Data == "}" {
-					working.Data = Token{AUGMENT, "{}", t.Line, t.Char}
-					tok++
+			if tok < max-1 {
+				if t.Data == "(" {
+					tmp, tok = parseValueList(tokens, tok, max)
+				} else if t.Data == "[" {
+					tmp, tok = parseTypeList(tokens, tok, max)
+				} else if t.Data == ")" || t.Data == "]" || t.Data == "}" {
+					// End of type
+					tok--
+					goto VOIDDONE
 				} else {
-					errOut("Error: start of list when parsing type (did you mean \"{}\"?)", t)
+					errOut("Error: unexpected delimeter when parsing type", t)
 				}
 			} else if tok >= max-1 {
 				errOut("Error: unexpected end of file when parsing type", t)
-			} else {
-				errOut("Error: unexpected delimeter when parsing type", t)
 			}
 
 		default:
-			errOut("Error: unexpected token when parsing type", t)
+			// End of type
+			tok--
+			goto VOIDDONE
 		}
 
-		makeParent(working, Node{})
-		working = &(working.Sub[0])
+		out.Sub = append(out.Sub, tmp)
 	}
+
+	VOIDDONE:
 
 	return out, tok
 }
@@ -324,69 +315,72 @@ func parseVoidType(tokens *[]Token, tok, max int) (Node, int) {
 // TODO: make sure this actually works
 func parseType(tokens *[]Token, tok, max int, param bool) (Node, int) {
 	out := Node{Data: Token{Type: 10, Data: "type"}}
-	working := &out
 
 	for ; tok < max; tok++ {
 		t := (*tokens)[tok]
+		var tmp Node
 		switch t.Type {
 		case AUGMENT:
 			if t.Data != "~" && t.Data != "`" {
 				errOut("Error: unexpected augment token when parsing type", t)
 			}
-			working.Data = t
+			tmp.Data = t
 
 		case KEYTYPE:
 			if t.Data == "void" {
-				*working, tok = parseVoidType(tokens, tok, max)
+				tmp, tok = parseTypeParams(tokens, tok, max)
 			} else {
-				working.Data = t
+				tmp.Data = t
+			}
+			out.Sub = append(out.Sub, tmp)
+			return out, tok
+		case DEFWORD:
+			if (*tokens)[tok+1].Data == "(" {
+				tmp, tok = parseTypeParams(tokens, tok, max)
 			}
 
 			return out, tok
 
-		case DEFWORD:
-			if (*tokens)[tok+1].Data == "(" {
-
-			}
-
 		case KEYWORD:
 			if param && t.Data == "static" {
 				// Nonstandard keyword in parameter definition
-				errOut("Error: parameter types cannot be static", t)
+				errOut("Error: parameter or value types cannot be static", t)
 			} else if t.Data != "const" && t.Data != "volatile" && t.Data != "static" {
 				// Nonstandard keyword in variable definition
 				errOut("Error: unexpected keyword when parsing type", t)
 			}
-			working.Data = t
+			tmp.Data = t
 
 		case DELIMIT:
-			if t.Data == "{" && tok < max-1 {
-				// What happens when an array type is defined
-				if (*tokens)[tok+1].Data == "}" {
-					// Length variable array
-					working.Data = Token{AUGMENT, "{}", t.Line, t.Char}
-					tok++
-				} else if (*tokens)[tok+1].Type == LITERAL {
-					// Array with constant length
+			if tok < max-1 {
+				if t.Data == "{" {
+					// What happens when an array type is defined
+					tmp.Data = Token{AUGMENT, "{}", t.Line, t.Char}
+					if (*tokens)[tok+1].Data == "}" {
+						// Length variable array, add no sub-nodes and increment
+						tok++
+					} else {
+						// Constant length array.  Parse value for length and increment
+						var tmp2 Node
+						tmp2, tok = parseValue(tokens, tok + 1, max)
+						tmp.Sub = append(tmp.Sub, tmp2)
+					}
 				} else {
-					// Undefined behaviour
-					errOut("Error: start of list when parsing type (did you mean \"{}\"?)", t)
+					errOut("Error: unexpected delimeter when parsing type", t)
 				}
-			} else if tok >= max-1 {
+			} else {
 				// End of file with open delimiter after type parsing has begun
 				errOut("Error: unexpected end of file when parsing type", t)
-			} else {
-				// Other delimiter than {} used in variable definition
-				errOut("Error: unexpected delimeter when parsing type", t)
 			}
 
 		default:
 			errOut("Error: unexpected token when parsing type", t)
 		}
 
-		makeParent(working, Node{})
-		working = &(working.Sub[0])
+		out.Sub = append(out.Sub, tmp)
 	}
+	
+	errOut("End of token list when trying to parse type", (*tokens)[max - 1])
 
 	return out, tok
 }
