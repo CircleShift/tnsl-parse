@@ -362,7 +362,16 @@ func parseType(tokens *[]Token, tok, max int, param bool) (Node, int) {
 		case DEFWORD:
 			if (*tokens)[tok+1].Data == "(" {
 				tmp, tok = parseTypeParams(tokens, tok, max)
+			} else if (*tokens)[tok+1].Data == "." {
+				tmp.Data = t
+				out.Sub = append(out.Sub, tmp)
+				tok++
+				continue
+			} else {
+				tmp.Data = t
+				tok++
 			}
+			out.Sub = append(out.Sub, tmp)
 
 			return out, tok
 
