@@ -45,5 +45,7 @@ func parsePre (tokens *[]Token, tok, max int) (Node, int) {
 	tmp := Node{Data: (*tokens)[tok], IsBlock: false}
 	out.Sub = append(out.Sub, tmp)
 
+	tok++
+
 	return out, tok
 }

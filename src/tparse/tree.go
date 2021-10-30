@@ -27,6 +27,13 @@ func errOut(message string, token Token) {
 	panic("AST Error")
 }
 
+func errOutV(message string, tok, max int, token Token) {
+	fmt.Println(message)
+	fmt.Println(token)
+	fmt.Println(tok)
+	fmt.Println(max)
+	panic("AST Error")
+}
 // MakeTree creates an AST out of a set of tokens
 func MakeTree(tokens *[]Token, file string) Node {
 	out := Node{}
@@ -36,13 +43,13 @@ func MakeTree(tokens *[]Token, file string) Node {
 
 	max := len(*tokens)
 
-	for tok := 0; tok < max; tok++ {
+	for tok := 0; tok < max; {
 		t := (*tokens)[tok]
 		switch t.Data {
 		case "/;":
-			tmp, tok = parseBlock(tokens, tok, max)
+			tmp, tok = parseBlock(tokens, tok + 1, max)
 		case ";":
-			tmp, tok = parseStatement(tokens, tok, max)
+			tmp, tok = parseStatement(tokens, tok + 1, max)
 		case "/:":
 			tmp, tok = parsePreBlock(tokens, tok + 1, max)
 		case ":":

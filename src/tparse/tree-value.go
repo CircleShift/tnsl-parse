@@ -90,7 +90,6 @@ var ORDER = map[string]int{
 func parseUnaryOps(tokens *[]Token, tok, max int) (Node) {
 	out := Node{Data: Token{Type: 10, Data: "value"}, IsBlock: false}
 	val := false
-
 	// Pre-value op scan
 	for ; tok < max && !val; tok++ {
 		t := (*tokens)[tok]
@@ -164,7 +163,7 @@ func parseUnaryOps(tokens *[]Token, tok, max int) (Node) {
 func parseBinaryOp(tokens *[]Token, tok, max int) (Node) {
 	out := Node{IsBlock: false}
 	first := tok
-	var high, highOrder, bincount int = first, 8, 0
+	var high, highOrder, bincount int = first, 0, 0
 	var curl, brak, parn int = 0, 0, 0
 
 	// Find first high-order op
@@ -194,7 +193,7 @@ func parseBinaryOp(tokens *[]Token, tok, max int) (Node) {
 			}
 		} else if t.Type == AUGMENT {
 			order, prs := ORDER[t.Data]
-			if !prs || curl > 0 || brak > 0 || parn > 0 {
+			if prs == false || curl > 0 || brak > 0 || parn > 0 {
 				continue
 			} else if order > highOrder {
 				high, highOrder = tok, order
@@ -207,9 +206,10 @@ func parseBinaryOp(tokens *[]Token, tok, max int) (Node) {
 	out.Data = (*tokens)[high]
 
 	if bincount == 0 {
-		// No binops means we have a value to parse.  Parse all unary ops around it.
+		// No binops means we have a pure value to parse.  Parse all unary ops around it.
 		return parseUnaryOps(tokens, first, max)
 	} else {
+		
 		// Recursive split to lower order operations
 		out.Sub = append(out.Sub, parseBinaryOp(tokens, first, high))
 		out.Sub = append(out.Sub, parseBinaryOp(tokens, high + 1, max))
@@ -316,8 +316,11 @@ func parseTypeParams(tokens *[]Token, tok, max int) (Node, int) {
 func parseType(tokens *[]Token, tok, max int, param bool) (Node, int) {
 	out := Node{Data: Token{Type: 10, Data: "type"}, IsBlock: false}
 
+	
+
 	for ; tok < max; tok++ {
 		t := (*tokens)[tok]
+		
 		var tmp Node
 		switch t.Type {
 		case AUGMENT:
@@ -331,7 +334,9 @@ func parseType(tokens *[]Token, tok, max int, param bool) (Node, int) {
 				tmp, tok = parseTypeParams(tokens, tok, max)
 			} else {
 				tmp.Data = t
+				tok++
 			}
+			
 			out.Sub = append(out.Sub, tmp)
 			return out, tok
 		case DEFWORD:
@@ -465,5 +470,5 @@ func isTypeThenValue(tokens *[]Token, tok, max int) (bool) {
 		}
 	}
 
-	return true
+	return stage == 2
 }

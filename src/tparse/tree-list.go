@@ -31,21 +31,22 @@ func getClosing(start string) string {
 
 // Parse a list of values
 func parseValueList(tokens *[]Token, tok, max int) (Node, int) {
-	out := Node{}
-	out.Data = Token{Type: 10, Data: "value"}
+	out := Node{Data: Token{Type: 10, Data: "list"}, IsBlock: false}
 	var tmp Node
 
-	c := getClosing((*tokens)[tok].Data)
+	tmp, tok = parseValue(tokens, tok, max)
+	out.Sub = append(out.Sub, tmp)
+	
+	for ; tok < max; {
 
-	tok++
-
-	for ; tok < max; tok++ {
 		t := (*tokens)[tok]
-
-		switch t.Data {
-		case c:
-			return out, tok
-		case ",":
+		
+		switch t.Type {
+		case LINESEP:
+			fallthrough
+		case DELIMIT:
+			return out, tok + 1
+		case INLNSEP:
 			tok++
 		default:
 			errOut("Error: unexpected token when parsing a list of values", t)
