@@ -102,6 +102,7 @@ var RESWORD = map[string]int{
 	"loop":     KEYWORD,
 	"continue": KEYWORD,
 	"break":    KEYWORD,
+	"return":   KEYWORD,
 
 	"match":   KEYWORD,
 	"case":    KEYWORD,
