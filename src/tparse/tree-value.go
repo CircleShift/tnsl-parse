@@ -98,7 +98,7 @@ func parseUnaryOps(tokens *[]Token, tok, max int) (Node) {
 			var tmp Node
 			switch t.Data {
 			case "{", "(": // Array or struct evaluation, parenthetical value
-				tmp, tok = parseValueList(tokens, tok, max)
+				tmp, tok = parseValueList(tokens, tok + 1, max)
 				out.Sub = append(out.Sub, tmp)
 				val = true
 			default:
@@ -132,14 +132,14 @@ func parseUnaryOps(tokens *[]Token, tok, max int) (Node) {
 			var tmp Node
 			switch t.Data {
 			case "(": // Function call
-				tmp, tok = parseValueList(tokens, tok, max)
+				tmp, tok = parseValueList(tokens, tok + 1, max)
+				tmp.Data.Data = "call"
 			case "[": // Typecasting
-				tmp, tok = parseTypeList(tokens, tok, max)
+				tmp, tok = parseTypeList(tokens, tok + 1, max)
+				tmp.Data.Data = "cast"
 			case "{": // Array indexing
-				tmp = Node{Data: Token{Type: 10, Data: "index"}}
-				var tmp2 Node
-				tmp2, tok = parseValue(tokens, tok + 1, max)
-				tmp.Sub = append(tmp.Sub, tmp2)
+				tmp, tok = parseValueList(tokens, tok + 1, max)
+				tmp.Data.Data = "index"
 			default:
 				errOut("Unexpected delimiter when parsing value", t)
 			}
@@ -305,12 +305,14 @@ func parseTypeParams(tokens *[]Token, tok, max int) (Node, int) {
 		case DELIMIT:
 			if tok < max-1 {
 				if t.Data == "(" {
-					tmp, tok = parseValueList(tokens, tok, max)
+					tmp, tok = parseTypeList(tokens, tok + 1, max)
+					tmp.Data.Data = "()"
 				} else if t.Data == "[" {
-					tmp, tok = parseTypeList(tokens, tok, max)
+					tmp, tok = parseTypeList(tokens, tok + 1, max)
+					tmp.Data.Data = "[]"
 				} else if t.Data == ")" || t.Data == "]" || t.Data == "}" {
 					// End of type
-					tok--
+					tok++
 					goto VOIDDONE
 				} else {
 					errOut("Error: unexpected delimeter when parsing type", t)
@@ -321,7 +323,6 @@ func parseTypeParams(tokens *[]Token, tok, max int) (Node, int) {
 
 		default:
 			// End of type
-			tok--
 			goto VOIDDONE
 		}
 
@@ -386,7 +387,7 @@ func parseType(tokens *[]Token, tok, max int, param bool) (Node, int) {
 					} else {
 						// Constant length array.  Parse value for length and increment
 						var tmp2 Node
-						tmp2, tok = parseValue(tokens, tok + 1, max)
+						tmp2, tok = parseValueList(tokens, tok + 1, max)
 						tmp.Sub = append(tmp.Sub, tmp2)
 					}
 				} else if t.Data == ")" || t.Data == "]" || t.Data == "}"{

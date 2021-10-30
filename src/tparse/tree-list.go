@@ -33,9 +33,6 @@ func getClosing(start string) string {
 func parseValueList(tokens *[]Token, tok, max int) (Node, int) {
 	out := Node{Data: Token{Type: 10, Data: "vlist"}, IsBlock: false}
 	var tmp Node
-
-	tmp, tok = parseValue(tokens, tok, max)
-	out.Sub = append(out.Sub, tmp)
 	
 	for ; tok < max; {
 
@@ -48,8 +45,6 @@ func parseValueList(tokens *[]Token, tok, max int) (Node, int) {
 			return out, tok
 		case INLNSEP:
 			tok++
-		default:
-			errOut("Error: unexpected token when parsing a list of values", t)
 		}
 
 		tmp, tok = parseValue(tokens, tok, max)
@@ -84,8 +79,6 @@ func parseParamList(tokens *[]Token, tok, max int) (Node, int) {
 			return out, tok
 		case INLNSEP:
 			tok++
-		default:
-			errOut("Error: unexpected token when parsing a list of values", t)
 		}
 
 		if isTypeThenValue(tokens, tok, max) {
@@ -104,9 +97,6 @@ func parseParamList(tokens *[]Token, tok, max int) (Node, int) {
 func parseTypeList(tokens *[]Token, tok, max int) (Node, int) {
 	out := Node{Data: Token{Type: 10, Data: "tlist"}, IsBlock: false}
 	var tmp Node
-
-	tmp, tok = parseType(tokens, tok, max, true)
-	out.Sub = append(out.Sub, tmp)
 	
 	for ; tok < max; {
 
@@ -119,8 +109,6 @@ func parseTypeList(tokens *[]Token, tok, max int) (Node, int) {
 			return out, tok
 		case INLNSEP:
 			tok++
-		default:
-			errOut("Error: unexpected token when parsing a list of values", t)
 		}
 
 		tmp, tok = parseType(tokens, tok, max, true)
