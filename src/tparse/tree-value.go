@@ -314,7 +314,7 @@ func parseTypeParams(tokens *[]Token, tok, max int) (Node, int) {
 
 // TODO: make sure this actually works
 func parseType(tokens *[]Token, tok, max int, param bool) (Node, int) {
-	out := Node{Data: Token{Type: 10, Data: "type"}}
+	out := Node{Data: Token{Type: 10, Data: "type"}, IsBlock: false}
 
 	for ; tok < max; tok++ {
 		t := (*tokens)[tok]
@@ -365,6 +365,10 @@ func parseType(tokens *[]Token, tok, max int, param bool) (Node, int) {
 						tmp2, tok = parseValue(tokens, tok + 1, max)
 						tmp.Sub = append(tmp.Sub, tmp2)
 					}
+				} else if t.Data == ")" || t.Data == "]" || t.Data == "}"{
+					// End of type
+					tok--
+					goto TYPEDONE
 				} else {
 					errOut("Error: unexpected delimeter when parsing type", t)
 				}
@@ -374,13 +378,14 @@ func parseType(tokens *[]Token, tok, max int, param bool) (Node, int) {
 			}
 
 		default:
-			errOut("Error: unexpected token when parsing type", t)
+			tok--
+			goto TYPEDONE
 		}
 
 		out.Sub = append(out.Sub, tmp)
 	}
-	
-	errOut("End of token list when trying to parse type", (*tokens)[max - 1])
+
+	TYPEDONE:
 
 	return out, tok
 }

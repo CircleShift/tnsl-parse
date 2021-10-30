@@ -19,7 +19,7 @@
 # pass a variable
 ;int s = 3
 
-;byte bitbyte = .2
+;int8 bitbyte = .2
 
 
 # generic scope block
@@ -120,7 +120,7 @@
 
 ;/
 
-/; switch (i)
+/; match (i)
   # You can do stuff here as well
   ;int t = 0
 

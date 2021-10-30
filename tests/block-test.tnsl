@@ -1,47 +1,49 @@
 /#
-   Copyright 2020 Kyle Gunger
+	Copyright 2020 Kyle Gunger
 
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
+	Licensed under the Apache License, Version 2.0 (the "License");
+	you may not use this file except in compliance with the License.
+	You may obtain a copy of the License at
 
-       http://www.apache.org/licenses/LICENSE-2.0
+		http://www.apache.org/licenses/LICENSE-2.0
 
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
+	Unless required by applicable law or agreed to in writing, software
+	distributed under the License is distributed on an "AS IS" BASIS,
+	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	See the License for the specific language governing permissions and
+	limitations under the License.
 #/
 
-/;if (i==0)
-    ;i = 2
-;/
-
-/:  include
-    "this"
-    "that"
-:/
-
-# ;; can be used as a quick block re-definition
-
-/;if (i==0)
-    ;i = 2
-;;else
-    ;i = 0
-;/
-
-# Comment block switching
-
-/; if (i == 2)
-    ;i = 4
-;#
-    Comment
-#; else
-    ;i = 6
-;/
 
 /; main
+	;int i = 0
+
+	/;if (i==0)
+		;i = 2
+	;/
+
+	/:  include
+		"this"
+		"that"
+	:/
+
+	# ;; can be used as a quick block re-definition
+
+	/;if (i==0)
+		;i = 2
+	;;else
+		;i = 0
+	;/
+
+	# Comment block switching
+
+	/; if (i == 2)
+		;i = 4
+	;#
+		Comment
+	#; else
+		;i = 6
+	;/
 ;/
 
 /; module vec
@@ -51,17 +53,17 @@
 	/;method Vector2
 
 		/; operator + (~Vector2 v)
-			;self.x += `v.x
-			;self.y += `v.y
+			;self.x += v`.x
+			;self.y += v`.y
 		;/
 
-        /; operator + (int32 a)
+		/; operator + (int32 a)
 			;self.x += a
 			;self.y += a
 		;/
 
 	;/
 
-    ;struct FVector2 () {}
+	;struct FVector2 () {}
 
 ;/

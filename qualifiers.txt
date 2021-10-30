@@ -22,7 +22,6 @@ structure of blocks:
 
 (block start)
     interface (defword)
-    enum (defword) (return type list)
 
     loop (bool params) (loop rets)
     if (bool params)
@@ -60,6 +59,7 @@ keyword statements:
 
 delete (list of defwords)*
 struct (defword) (struct params)*
+enum (defword) (return type list) (enum values)
 continue
 break
 label (defword)

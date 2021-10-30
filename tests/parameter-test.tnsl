@@ -13,6 +13,6 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 #/
-
+;int another = 0
 /; loop (int initial = 0, complex = 2) [initial < max || complex < 40, initial++, complex += 7, another += 2]
 ;/

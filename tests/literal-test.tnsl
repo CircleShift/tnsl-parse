@@ -15,8 +15,8 @@
 #/
 
 # These should all work
-;[]char s = "\""
-;[]char st="\\"
+;{}char s = "\""
+;{}char st="\\"
 
 ;int i = 0
 ;int j=1
@@ -41,3 +41,4 @@
 ;int k = .1
 
 ;int l = 0x01
+
