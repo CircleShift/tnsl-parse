@@ -389,3 +389,10 @@ func parseType(tokens *[]Token, tok, max int, param bool) (Node, int) {
 
 	return out, tok
 }
+
+
+func isTypeThenValue(tokens *[]Token, tok, max int) (bool) {
+	//TODO: check for a standard type and then a value
+	
+	return true
+}
