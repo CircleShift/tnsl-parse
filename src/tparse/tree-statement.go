@@ -108,7 +108,7 @@ func parseStatement(tokens *[]Token, tok, max int) (Node, int) {
 		out.Sub = append(out.Sub, tmp)
 	} else {
 		// do check for definition
-		if isTypeThenValue {
+		if isTypeThenValue(tokens, tok, max) {
 			// if not, parse a value
 			tmp, tok = parseDef(tokens, tok, max)
 		} else {
