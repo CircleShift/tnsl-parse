@@ -20,9 +20,8 @@ package tparse
 func parseBlock(tokens *[]Token, tok, max int) (Node, int) {
 	out, tmp, def, name := Node{}, Node{}, Node{}, false
 	out.Data = Token{Type: 10, Data: "block"}
-	def.Data = Token{Type: 10, Data: "blockdef"}
-
-	tok++
+	out.IsBlock = true
+	def.Data = Token{Type: 10, Data: "bdef"}
 
 	for ;tok < max; tok++{
 		t := (*tokens)[tok]
@@ -30,10 +29,10 @@ func parseBlock(tokens *[]Token, tok, max int) (Node, int) {
 		switch t.Type {
 		case DELIMIT:
 			if t.Data == "(" {
-				tmp, tok = parseValueList(tokens, tok, max)
+				tmp, tok = parseParamList(tokens, tok + 1, max)
 				def.Sub = append(def.Sub, tmp)
 			} else if t.Data == "[" {
-				tmp, tok = parseTypeList(tokens, tok, max)
+				tmp, tok = parseTypeList(tokens, tok + 1, max)
 				def.Sub = append(def.Sub, tmp)
 			} else {
 				goto BREAK
@@ -53,12 +52,18 @@ func parseBlock(tokens *[]Token, tok, max int) (Node, int) {
 			case "else":
 				if (*tokens)[tok+1].Data == "if" {
 					tmp.Data = Token{KEYWORD, "elif", t.Line, t.Char}
+					def.Sub = append(def.Sub, tmp)
 					tok++
-					name = true
 					continue
 				}
 			case "if", "match", "case", "loop":
+				name = true
+				fallthrough
 			case "export", "inline", "raw", "override":
+				tmp.Data = t
+				def.Sub = append(def.Sub, tmp)
+			default:
+				errOut("Unexpected keyword in block definition.", t)
 			}
 		case LINESEP:
 			goto BREAK
@@ -76,11 +81,12 @@ func parseBlock(tokens *[]Token, tok, max int) (Node, int) {
 		case ";/", ";;", ";:":
 			return out, tok
 		case ";":
-			tmp, tok = parseStatement(tokens, tok, max)
+
+			tmp, tok = parseStatement(tokens, tok + 1, max)
 		case "/;":
 			REBLOCK:
 			
-			tmp, tok = parseBlock(tokens, tok, max)
+			tmp, tok = parseBlock(tokens, tok + 1, max)
 
 			if (*tokens)[tok].Data == ";;" {
 				out.Sub = append(out.Sub, tmp)
@@ -162,7 +168,7 @@ func keywordStatement(tokens *[]Token, tok, max int) (Node, int) {
 			errOut("Could not find struct member list", (*tokens)[tok])
 		}
 
-		tmp, tok = parseValueList(tokens, tok, max)
+		tmp, tok = parseParamList(tokens, tok, max)
 
 	case "goto", "label":
 		if (*tokens)[tok].Type != DEFWORD {
@@ -193,10 +199,8 @@ func keywordStatement(tokens *[]Token, tok, max int) (Node, int) {
 
 // Should work, but none of this is tested.
 func parseDef(tokens *[]Token, tok, max int) (Node, int) {
-	out := Node{}
-	out.Data = Token{}
+	out := Node{Data: Token{11, "vdef", 0, 0}}
 	var tmp Node
-
 
 	tmp, tok = parseType(tokens, tok, max, false)
 	out.Sub = append(out.Sub, tmp)

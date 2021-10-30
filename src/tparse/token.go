@@ -29,9 +29,6 @@ type Node struct {
 	Data Token
 
     IsBlock  bool
-    BlockQs  []Token
-    BlockIn  []Node
-    BlockOut []Node
 
 	Sub  []Node
 }

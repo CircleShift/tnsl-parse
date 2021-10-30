@@ -31,7 +31,7 @@ func getClosing(start string) string {
 
 // Parse a list of values
 func parseValueList(tokens *[]Token, tok, max int) (Node, int) {
-	out := Node{Data: Token{Type: 10, Data: "list"}, IsBlock: false}
+	out := Node{Data: Token{Type: 10, Data: "vlist"}, IsBlock: false}
 	var tmp Node
 
 	tmp, tok = parseValue(tokens, tok, max)
@@ -45,7 +45,7 @@ func parseValueList(tokens *[]Token, tok, max int) (Node, int) {
 		case LINESEP:
 			fallthrough
 		case DELIMIT:
-			return out, tok + 1
+			return out, tok
 		case INLNSEP:
 			tok++
 		default:
@@ -61,28 +61,40 @@ func parseValueList(tokens *[]Token, tok, max int) (Node, int) {
 
 // Parse list of parameters
 func parseParamList(tokens *[]Token, tok, max int) (Node, int) {
-	out := Node{}
-	out.Data = Token{Type: 10, Data: "param"}
+	out := Node{Data: Token{Type: 10, Data: "plist"}, IsBlock: false}
 	var tmp Node
 
-	c := getClosing((*tokens)[tok].Data)
+	if isTypeThenValue(tokens, tok, max) {
+		tmp, tok = parseType(tokens, tok, max, true)
+		out.Sub = append(out.Sub, tmp)
+		tmp, tok = parseValue(tokens, tok, max)
+		out.Sub = append(out.Sub, tmp)
+	} else {
+		errOut("Error: no initial type in parameter list", (*tokens)[tok])
+	}
+	
+	for ; tok < max; {
 
-	tok++
-
-	for ; tok < max; tok++ {
 		t := (*tokens)[tok]
-
-		switch t.Data {
-		case c:
+		
+		switch t.Type {
+		case LINESEP:
+			fallthrough
+		case DELIMIT:
 			return out, tok
-		case ",":
+		case INLNSEP:
 			tok++
 		default:
 			errOut("Error: unexpected token when parsing a list of values", t)
 		}
 
-		tmp, tok = parseValue(tokens, tok, max)
-		out.Sub = append(out.Sub, tmp)
+		if isTypeThenValue(tokens, tok, max) {
+			tmp, tok = parseType(tokens, tok, max, true)
+			out.Sub = append(out.Sub, tmp)
+		} else {
+			tmp, tok = parseValue(tokens, tok, max)
+			out.Sub = append(out.Sub, tmp)
+		}
 	}
 
 	return out, tok
@@ -90,24 +102,25 @@ func parseParamList(tokens *[]Token, tok, max int) (Node, int) {
 
 // Parse a list of types
 func parseTypeList(tokens *[]Token, tok, max int) (Node, int) {
-	out := Node{}
-	out.Data = Token{Type: 10, Data: "type"}
+	out := Node{Data: Token{Type: 10, Data: "tlist"}, IsBlock: false}
 	var tmp Node
 
-	c := getClosing((*tokens)[tok].Data)
+	tmp, tok = parseType(tokens, tok, max, true)
+	out.Sub = append(out.Sub, tmp)
+	
+	for ; tok < max; {
 
-	tok++
-
-	for ; tok < max; tok++ {
 		t := (*tokens)[tok]
-
-		switch t.Data {
-		case c:
+		
+		switch t.Type {
+		case LINESEP:
+			fallthrough
+		case DELIMIT:
 			return out, tok
-		case ",":
+		case INLNSEP:
 			tok++
 		default:
-			errOut("Error: unexpected token when parsing a list of types", t)
+			errOut("Error: unexpected token when parsing a list of values", t)
 		}
 
 		tmp, tok = parseType(tokens, tok, max, true)

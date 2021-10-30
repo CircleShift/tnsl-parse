@@ -33,7 +33,7 @@ func numericLiteral(r *bufio.Reader, line int, char *int) Token {
 	b := strings.Builder{}
 
 	for ; err == nil; run, _, err = r.ReadRune() {
-		if (run == '.' || run == ',') && !decimal {
+		if (run == '.') && !decimal {
 			decimal = true
 		} else if !unicode.IsNumber(run) {
 			break

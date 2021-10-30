@@ -221,18 +221,21 @@ func parseBinaryOp(tokens *[]Token, tok, max int) (Node) {
 // Works? Please test.
 func parseValue(tokens *[]Token, tok, max int) (Node, int) {
 	first := tok
-	var curl, brak, parn int = 0, 0, 0
+	var curl, brak, parn, block int = 0, 0, 0, 0
 
 	for ; tok < max; tok++ {
 		t := (*tokens)[tok]
 		switch t.Type {
 		case LINESEP:
+			if block > 0 {
+				continue
+			}
 			if curl > 0 || brak > 0 || parn > 0 {
 				errOut("Encountered end of statement before all delimiter pairs were closed while looking for the end of a value.", t)
 			}
 			goto PARSEBIN
 		case INLNSEP:
-			if curl > 0 || brak > 0 || parn > 0 {
+			if curl > 0 || brak > 0 || parn > 0 || block > 0 {
 				continue
 			}
 			goto PARSEBIN
@@ -251,6 +254,24 @@ func parseValue(tokens *[]Token, tok, max int) (Node, int) {
 				brak--
 			case ")":
 				parn--
+			
+			case "/;":
+				block++
+			case ";/":
+				if block > 0 {
+					block--
+				}
+				fallthrough
+			case ";;":
+				if block > 1 {
+					continue
+				} else if block == 1 {
+					errOut("Error: redefinition of a block from a block as a value is not permitted.", t)
+				}
+				if curl > 0 || brak > 0 || parn > 0 {
+					errOut("Delimeter pairs not closed before end of value", t)
+				}
+				goto PARSEBIN
 			}
 
 			// TODO: Support blocks as values
@@ -316,11 +337,9 @@ func parseTypeParams(tokens *[]Token, tok, max int) (Node, int) {
 func parseType(tokens *[]Token, tok, max int, param bool) (Node, int) {
 	out := Node{Data: Token{Type: 10, Data: "type"}, IsBlock: false}
 
-	
-
 	for ; tok < max; tok++ {
 		t := (*tokens)[tok]
-		
+
 		var tmp Node
 		switch t.Type {
 		case AUGMENT:
@@ -372,7 +391,6 @@ func parseType(tokens *[]Token, tok, max int, param bool) (Node, int) {
 					}
 				} else if t.Data == ")" || t.Data == "]" || t.Data == "}"{
 					// End of type
-					tok--
 					goto TYPEDONE
 				} else {
 					errOut("Error: unexpected delimeter when parsing type", t)
@@ -383,7 +401,6 @@ func parseType(tokens *[]Token, tok, max int, param bool) (Node, int) {
 			}
 
 		default:
-			tok--
 			goto TYPEDONE
 		}
 
