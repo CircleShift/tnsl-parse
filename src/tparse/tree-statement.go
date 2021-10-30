@@ -112,16 +112,16 @@ func parseStatement(tokens *[]Token, tok, max int) (Node, int) {
 
 	// Check for keyword, definition, then if none of those apply, assume it's a value.
 	if (*tokens)[tok].Type == KEYWORD {
-		tmp, tok = keywordStatement(tokens, tok, max)
-		out.Sub = append(out.Sub, tmp)
+		return keywordStatement(tokens, tok, max)
 	} else {
 		// do check for definition
 		if isTypeThenValue(tokens, tok, max) {
 			// if not, parse a value
-			tmp, tok = parseDef(tokens, tok, max)
+			return parseDef(tokens, tok, max)
 		} else {
 			// if not, parse a value
 			tmp, tok = parseValue(tokens, tok, max)
+			out.Data.Data = "value"
 		}
 		out.Sub = append(out.Sub, tmp)
 	}
@@ -203,7 +203,7 @@ func keywordStatement(tokens *[]Token, tok, max int) (Node, int) {
 
 // Should work, but none of this is tested.
 func parseDef(tokens *[]Token, tok, max int) (Node, int) {
-	out := Node{Data: Token{11, "vdef", 0, 0}}
+	out := Node{Data: Token{11, "define", 0, 0}}
 	var tmp Node
 
 	tmp, tok = parseType(tokens, tok, max, false)

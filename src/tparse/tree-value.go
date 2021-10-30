@@ -19,13 +19,17 @@ package tparse
 // Ops order in TNSL
 // Cast/Paren > Address > Get > Inc/Dec > Math > Bitwise > Logic
 
-var UNARY = map[string]int {
+var UNARY_PRE = map[string]int {
 	"~": 0,
-	"`": 0,
 	"++": 2,
 	"--": 2,
 	"!": 6,
+}
 
+var UNARY_POST = map[string]int {
+	"`": 0,
+	"++": 2,
+	"--": 2,
 }
 
 var ORDER = map[string]int{
@@ -88,31 +92,36 @@ var ORDER = map[string]int{
 
 // Works? Please test. 
 func parseUnaryOps(tokens *[]Token, tok, max int) (Node) {
-	out := Node{Data: Token{Type: 10, Data: "value"}, IsBlock: false}
-	val := false
+	var out Node
+	var vnode *Node = &out
+	val, comp := false, false
 	// Pre-value op scan
 	for ; tok < max && !val; tok++ {
 		t := (*tokens)[tok]
 		switch t.Type {
 		case DELIMIT:
-			var tmp Node
+			
 			switch t.Data {
 			case "{", "(": // Array or struct evaluation, parenthetical value
-				tmp, tok = parseValueList(tokens, tok + 1, max)
-				out.Sub = append(out.Sub, tmp)
+				if vnode != &out {
+					errOut("Composite values may not use unary operators.", out.Data)
+				}
+				(*vnode), tok = parseValueList(tokens, tok + 1, max)
 				val = true
+				comp = true
 			default:
 				errOut("Unexpected delimiter when parsing value", t)
 			}
 		case LITERAL, DEFWORD:
-			out.Sub = append(out.Sub, Node{Data: t, IsBlock: false})
+			(*vnode).Data = t
 			val = true
 		case AUGMENT:
-			_, prs := UNARY[t.Data]
+			_, prs := UNARY_PRE[t.Data]
 			if !prs {
 				errOut("Parser bug!  Operator failed to load into AST.", t)
 			} else {
-				out.Sub = append(out.Sub, Node{Data: t, IsBlock: false})
+				(*vnode) = Node{t, false, []Node{Node{}}}
+				vnode = &((*vnode).Sub[0])
 			}
 		default:
 			errOut("Unexpected token in value declaration", t)
@@ -121,39 +130,47 @@ func parseUnaryOps(tokens *[]Token, tok, max int) (Node) {
 
 	// Sanity check: make sure there's actually a value here
 	if !val {
-		errOut("Expected to find value, but there wasn't one", (*tokens)[max])
+		errOut("Expected to find value, but there wasn't one", (*tokens)[max - 1])
 	}
 
 	// Post-value op scan
 	for ; tok < max; tok++ {
 		t := (*tokens)[tok]
+		var tmp Node
 		switch t.Type {
 		case DELIMIT:
-			var tmp Node
 			switch t.Data {
 			case "(": // Function call
+				if comp {
+					errOut("Composite values can not be called as functions.", t)
+				}
 				tmp, tok = parseValueList(tokens, tok + 1, max)
 				tmp.Data.Data = "call"
 			case "[": // Typecasting
 				tmp, tok = parseTypeList(tokens, tok + 1, max)
 				tmp.Data.Data = "cast"
 			case "{": // Array indexing
+				if comp {
+					errOut("Inline composite values can not be indexed.", t)
+				}
 				tmp, tok = parseValueList(tokens, tok + 1, max)
 				tmp.Data.Data = "index"
 			default:
 				errOut("Unexpected delimiter when parsing value", t)
 			}
-			out.Sub = append(out.Sub, tmp)
 		case AUGMENT:
-			_, prs := UNARY[t.Data]
+			_, prs := UNARY_POST[t.Data]
 			if !prs {
 				errOut("Parser bug!  Operator failed to load into AST.", t)
-			} else {
-				out.Sub = append(out.Sub, Node{Data: t, IsBlock: false})
+			}else if comp {
+				errOut("Composite values are not allowed to use unary operators.", t)
 			}
+			tmp = Node{}
+			tmp.Data = t
 		default:
 			errOut("Unexpected token in value declaration", t)
 		}
+		(*vnode).Sub = append((*vnode).Sub, tmp)
 	}
 
 	return out
