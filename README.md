@@ -23,3 +23,5 @@ Binaries will be dumped in the "build" folder.
 
     Parser: broke
     Interpreter: not started
+
+With some of the code I've written, I'm kinda supprised that this even compiles.
