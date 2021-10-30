@@ -16,6 +16,7 @@
 
 package tparse
 
+// TODO: re-validate this code.  I forgot if it works or not.
 func parseBlock(tokens *[]Token, tok, max int) (Node, int) {
 	out, tmp, def, name := Node{}, Node{}, Node{}, false
 	out.Data = Token{Type: 10, Data: "block"}
@@ -97,6 +98,7 @@ func parseBlock(tokens *[]Token, tok, max int) (Node, int) {
 	return out, tok
 }
 
+// This should work once isTypeThenValue properly functions
 func parseStatement(tokens *[]Token, tok, max int) (Node, int) {
 	out := Node{}
 	out.Data = Token{Type: 11, Data: ";"}
@@ -189,6 +191,7 @@ func keywordStatement(tokens *[]Token, tok, max int) (Node, int) {
 	return out, tok
 }
 
+// Should work, but none of this is tested.
 func parseDef(tokens *[]Token, tok, max int) (Node, int) {
 	out := Node{}
 	out.Data = Token{}

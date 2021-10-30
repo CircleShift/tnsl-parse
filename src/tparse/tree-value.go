@@ -390,9 +390,80 @@ func parseType(tokens *[]Token, tok, max int, param bool) (Node, int) {
 	return out, tok
 }
 
-
+// TODO: Check if this works. This implimentation is probably bad, but I don't care.
 func isTypeThenValue(tokens *[]Token, tok, max int) (bool) {
 	//TODO: check for a standard type and then a value
-	
+	var stage int = 0
+	var curl, brak, parn int = 0, 0, 0
+
+	for ; tok < max && stage < 2; tok++ {
+		t := (*tokens)[tok]
+		switch t.Type {
+		case KEYTYPE:
+			if curl > 0 || brak > 0 || parn > 0 {
+				continue
+			} else if stage > 0 {
+				errOut("Encountered a keytype where we weren't expecting one (iTTV).", t)
+			}
+			stage++
+		case DEFWORD:
+			if curl > 0 || brak > 0 || parn > 0 {
+				continue
+			}
+			stage++
+		case LINESEP:
+			if curl > 0 || brak > 0 || parn > 0 {
+				errOut("Encountered end of statement before all delimiter pairs were closed (iTTV).", t)
+			}
+			return false
+		case INLNSEP:
+			if curl > 0 || brak > 0 || parn > 0 {
+				continue
+			}
+			return false
+		case DELIMIT:
+			switch t.Data {
+			case "{":
+				curl++
+			case "[":
+				brak++
+			case "(":
+				parn++
+			
+			case "}":
+				curl--
+			case "]":
+				brak--
+			case ")":
+				parn--
+			default:
+				return false
+			}
+
+			if curl < 0 || brak < 0 || parn < 0 {
+				if curl > 0 || brak > 0 || parn > 0 {
+					errOut("Un-matched closing delimiter (iTTV).", t)
+				} else if curl + brak + parn == -1 {
+					return false
+				} else {
+					errOut("Strange bracket values detected when parsing value.  Possibly a parser bug. (iTTV)", t)
+				}
+			}
+		case AUGMENT:
+			switch t.Data {
+			case ".":
+				if (*tokens)[tok + 1].Type == DEFWORD {
+					tok++
+				} else {
+					errOut("Expected defword after 'get' operator (iTTV).", t)
+				}
+			case "~":
+			case "`":
+			default:
+				return false
+			}
+		}
+	}
+
 	return true
 }
