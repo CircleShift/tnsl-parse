@@ -102,11 +102,12 @@ func parseUnaryOps(tokens *[]Token, tok, max int) (Node) {
 		case DELIMIT:
 			
 			switch t.Data {
-			case "{", "(": // Array or struct evaluation, parenthetical value
+			case "{": // Array or struct evaluation, parenthetical value
 				if vnode != &out {
 					errOut("Composite values may not use unary operators.", out.Data)
 				}
-				(*vnode), tok = parseValueList(tokens, tok + 1, max)
+				(*vnode) = Node{Token{10, "comp", 0, 0}, false, []Node{Node{}}}
+				(*vnode).Sub[0], tok = parseValueList(tokens, tok + 1, max)
 				val = true
 				comp = true
 			default:
@@ -320,12 +321,12 @@ func parseTypeParams(tokens *[]Token, tok, max int) (Node, int) {
 	out := Node{Data: (*tokens)[tok], IsBlock: false}
 	tok++
 
-	for ; tok < max; tok++ {
+	for ; tok < max; tok++{
 		t := (*tokens)[tok]
 		tmp := Node{IsBlock: false}
 		switch t.Type {
 		case DELIMIT:
-			if tok < max-1 {
+			if tok < max {
 				if t.Data == "(" {
 					tmp, tok = parseTypeList(tokens, tok + 1, max)
 					tmp.Data.Data = "()"
@@ -339,7 +340,7 @@ func parseTypeParams(tokens *[]Token, tok, max int) (Node, int) {
 				} else {
 					errOut("Error: unexpected delimeter when parsing type", t)
 				}
-			} else if tok >= max-1 {
+			} else {
 				errOut("Error: unexpected end of file when parsing type", t)
 			}
 
