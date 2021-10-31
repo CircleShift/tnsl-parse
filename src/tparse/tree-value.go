@@ -273,8 +273,13 @@ func parseValue(tokens *[]Token, tok, max int) (Node, int) {
 				parn--
 			
 			case "/;":
+				_, prs := ORDER[(*tokens)[tok - 1].Data]
+				if !prs && block == 0 {
+					goto PARSEBIN
+				}
 				block++
 			case ";/":
+				
 				if block > 0 {
 					block--
 				}
@@ -329,8 +334,8 @@ func parseTypeParams(tokens *[]Token, tok, max int) (Node, int) {
 					tmp.Data.Data = "[]"
 				} else if t.Data == ")" || t.Data == "]" || t.Data == "}" {
 					// End of type
-					tok++
-					goto VOIDDONE
+					//errOutV("Test", tok, max, t)
+					goto DONE
 				} else {
 					errOut("Error: unexpected delimeter when parsing type", t)
 				}
@@ -340,13 +345,13 @@ func parseTypeParams(tokens *[]Token, tok, max int) (Node, int) {
 
 		default:
 			// End of type
-			goto VOIDDONE
+			goto DONE
 		}
 
 		out.Sub = append(out.Sub, tmp)
 	}
 
-	VOIDDONE:
+	DONE:
 
 	return out, tok
 }
