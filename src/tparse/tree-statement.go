@@ -60,6 +60,16 @@ func parseBlock(tokens *[]Token, tok, max int) (Node, int) {
 				errOut("Unexpected keyword, the block has already been given a name or keyword.", t)
 			}
 			switch t.Data {
+			case "operator":
+				name = true
+				if (*tokens)[tok+1].Type != AUGMENT {
+					errOut("You must supply an operator to overload.", t)
+				} else if (*tokens)[tok+1].Data == "`" || (*tokens)[tok+1].Data == "~" {
+					errOut("You may not overload the following operators: '~', '`'.", t)
+				}
+				tmp.Data = (*tokens)[tok+1]
+				def.Sub = append(def.Sub, tmp)
+				tok += 2
 			case "else":
 				name = true
 				sparse = true
@@ -76,6 +86,17 @@ func parseBlock(tokens *[]Token, tok, max int) (Node, int) {
 			case "export", "inline", "raw", "override":
 				tmp.Data = t
 				def.Sub = append(def.Sub, tmp)
+			case "module":
+				if (*tokens)[tok+1].Type != DEFWORD && !name {
+					errOut("You must provide a name for a module.", t)
+				} else if !name {
+					tmp.Sub = append(tmp.Sub, Node{(*tokens)[tok+1], false, []Node{}})
+					tok++
+				}
+				tmp.Data = t
+				def.Sub = append(def.Sub, tmp)
+				tok++
+				goto BREAK
 			default:
 				errOut("Unexpected keyword in block definition.", t)
 			}
