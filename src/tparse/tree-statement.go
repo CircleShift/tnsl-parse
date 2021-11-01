@@ -86,9 +86,9 @@ func parseBlock(tokens *[]Token, tok, max int) (Node, int) {
 			case "export", "inline", "raw", "override":
 				tmp.Data = t
 				def.Sub = append(def.Sub, tmp)
-			case "module":
+			case "module", "method":
 				if (*tokens)[tok+1].Type != DEFWORD && !name {
-					errOut("You must provide a name for a module.", t)
+					errOut("You must provide a name for a module or method.", t)
 				} else if !name {
 					tmp.Sub = append(tmp.Sub, Node{(*tokens)[tok+1], false, []Node{}})
 					tok++
@@ -207,7 +207,23 @@ func keywordStatement(tokens *[]Token, tok, max int) (Node, int) {
 		}
 
 		tmp, tok = parseParamList(tokens, tok + 1, max)
+	case "enum":
+		if (*tokens)[tok].Type != DEFWORD {
+			errOut("Expected defword after enum keyword.", (*tokens)[tok])
+		}
+		tmp.Data = (*tokens)[tok]
+		out.Sub = append(out.Sub, tmp)
+		tok++
+		if (*tokens)[tok].Data == "[" {
+			tmp, tok = parseTypeList(tokens, tok + 1, max)
+			out.Sub = append(out.Sub, tmp)
+		}
 
+		if (*tokens)[tok].Data != "{" {
+			errOut("Could not find enum value list", (*tokens)[tok])
+		}
+
+		tmp, tok = parseValueList(tokens, tok + 1, max)
 	case "goto", "label":
 		if (*tokens)[tok].Type != DEFWORD {
 			errOut("Expected defword after goto or label keyword.", out.Data)
