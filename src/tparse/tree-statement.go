@@ -62,14 +62,14 @@ func parseBlock(tokens *[]Token, tok, max int) (Node, int) {
 			switch t.Data {
 			case "operator":
 				name = true
-				if (*tokens)[tok+1].Type != AUGMENT {
+				if (*tokens)[tok+1].Type != AUGMENT && (*tokens)[tok+1].Data != "delete" {
 					errOut("You must supply an operator to overload.", t)
 				} else if (*tokens)[tok+1].Data == "`" || (*tokens)[tok+1].Data == "~" {
 					errOut("You may not overload the following operators: '~', '`'.", t)
 				}
 				tmp.Data = (*tokens)[tok+1]
 				def.Sub = append(def.Sub, tmp)
-				tok += 2
+				tok += 1
 			case "else":
 				name = true
 				sparse = true
@@ -150,7 +150,8 @@ func parseStatement(tokens *[]Token, tok, max int) (Node, int) {
 	var tmp Node
 
 	// Check for keyword, definition, then if none of those apply, assume it's a value.
-	if (*tokens)[tok].Type == KEYWORD {
+	t := (*tokens)[tok]
+	if t.Type == KEYWORD && t.Data != "const" && t.Data != "volatile" && t.Data != "static" {
 		return keywordStatement(tokens, tok, max)
 	} else {
 		// do check for definition
@@ -200,6 +201,7 @@ func keywordStatement(tokens *[]Token, tok, max int) (Node, int) {
 		if (*tokens)[tok].Data == "(" {
 			tmp, tok = parseValueList(tokens, tok + 1, max)
 			out.Sub = append(out.Sub, tmp)
+			tok++
 		}
 
 		if (*tokens)[tok].Data != "{" {
@@ -207,6 +209,7 @@ func keywordStatement(tokens *[]Token, tok, max int) (Node, int) {
 		}
 
 		tmp, tok = parseParamList(tokens, tok + 1, max)
+		tok++
 	case "enum":
 		if (*tokens)[tok].Type != DEFWORD {
 			errOut("Expected defword after enum keyword.", (*tokens)[tok])
@@ -217,6 +220,7 @@ func keywordStatement(tokens *[]Token, tok, max int) (Node, int) {
 		if (*tokens)[tok].Data == "[" {
 			tmp, tok = parseTypeList(tokens, tok + 1, max)
 			out.Sub = append(out.Sub, tmp)
+			tok++
 		}
 
 		if (*tokens)[tok].Data != "{" {
@@ -224,6 +228,7 @@ func keywordStatement(tokens *[]Token, tok, max int) (Node, int) {
 		}
 
 		tmp, tok = parseValueList(tokens, tok + 1, max)
+		tok++
 	case "goto", "label":
 		if (*tokens)[tok].Type != DEFWORD {
 			errOut("Expected defword after goto or label keyword.", out.Data)
@@ -242,7 +247,7 @@ func keywordStatement(tokens *[]Token, tok, max int) (Node, int) {
 		if (*tokens)[tok].Type != DELIMIT || (*tokens)[tok].Data == "{" || (*tokens)[tok].Data == "(" {
 			tmp, tok = parseValueList(tokens, tok, max)
 		}
-	case "alloc", "salloc":
+	case "alloc", "salloc", "realloc":
 		// Parse value list
 		tmp, tok = parseValueList(tokens, tok, max)
 	case "delete":

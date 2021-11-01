@@ -120,8 +120,8 @@ var RESWORD = map[string]int{
 
 	"method":   KEYWORD,
 	"override": KEYWORD,
-	"self":     KEYWORD,
-	"super":    KEYWORD,
+	"self":     LITERAL,
+	"super":    LITERAL,
 	"operator": KEYWORD,
 
 	"raw":    KEYWORD,
@@ -131,9 +131,10 @@ var RESWORD = map[string]int{
 	"true":  LITERAL,
 	"false": LITERAL,
 
-	"alloc":  KEYWORD,
-	"calloc": KEYWORD,
-	"delete": KEYWORD,
+	"alloc":   KEYWORD,
+	"salloc":  KEYWORD,
+	"realloc": KEYWORD,
+	"delete":  KEYWORD,
 
 	"module": KEYWORD,
 	"export": KEYWORD,
@@ -277,6 +278,8 @@ var RESRUNES = map[string]int{
 	// Increment and De-increment
 	"++": AUGMENT,
 	"--": AUGMENT,
+
+	"len": AUGMENT,
 }
 
 func maxResRunes() int {
