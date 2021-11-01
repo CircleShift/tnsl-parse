@@ -37,7 +37,7 @@ type TContext struct {
 }
 
 // TModule represents a collection of files and sub-modules in a program
-type Module struct {
+type TModule struct {
 	Files   []Node,
 	Globals []map[string]TVariable
 	Sub     []TModule
