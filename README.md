@@ -21,7 +21,7 @@ Binaries will be dumped in the "build" folder.
 
 ## Status:
 
-    Parser: broke
-    Interpreter: not started
+    Parser: sorta works (sometimes)
+    Interpreter: broken
 
 With some of the code I've written, I'm kinda supprised that this even compiles.
