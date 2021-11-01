@@ -14,25 +14,4 @@
 	limitations under the License.
 */
 
-package tparse
-
-// Token represents a token in a program
-type Token struct {
-	Type int
-	Data string
-	Line int
-	Char int
-}
-
-// Node represents a node in an AST
-type Node struct {
-	Data Token
-
-    IsBlock  bool
-
-	Sub  []Node
-}
-
-func makeParent(parent *Node, child Node) {
-	parent.Sub = append(parent.Sub, child)
-}
+package texec

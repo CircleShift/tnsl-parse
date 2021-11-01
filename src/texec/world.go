@@ -25,13 +25,14 @@ type TVariable struct {
 // TPath represents a pointer to the current module and file
 // that the thread is working in.
 type TPath struct {
-	module []string,
-	file   string
+	Module     []string,
+	Artifact   string
 }
 
 // TContext represents a single thread.
 type TContext struct {
 	CallStack []Node,
+	CallEnv   []TPath,
 	VarMap    []map[string]TVariable
 }
 

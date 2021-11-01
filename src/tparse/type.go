@@ -71,9 +71,10 @@ func checkPreWord(s string) int {
 
 // RESWORD represents all the reserved words and what type of tokens they are.
 var RESWORD = map[string]int{
-	"bool":  KEYTYPE,
-	"char": KEYTYPE,
-	"charp": KEYTYPE,
+	"bool":   KEYTYPE,
+	"char":   KEYTYPE,
+	"charp":  KEYTYPE,
+	"string": KEYTYPE,
 
 	"int":    KEYTYPE,
 	"int8":   KEYTYPE,
