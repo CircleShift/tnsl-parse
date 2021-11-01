@@ -25,7 +25,7 @@ func parsePreBlock (tokens *[]Token, tok, max int) (Node, int) {
 	for ; tok < max; tok++ {
 		t := (*tokens)[tok]
 
-		if t.Data == ":/" {
+		if t.Data == ":/" || t.Data == ":;" {
 			break
 		}
 

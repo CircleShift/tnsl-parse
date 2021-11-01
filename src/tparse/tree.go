@@ -59,7 +59,7 @@ func MakeTree(tokens *[]Token, file string) Node {
 			}
 		case ";":
 			tmp, tok = parseStatement(tokens, tok + 1, max)
-		case "/:":
+		case "/:", ";:":
 			tmp, tok = parsePreBlock(tokens, tok + 1, max)
 		case ":":
 			tmp, tok = parsePre(tokens, tok + 1, max)

@@ -120,27 +120,29 @@ func parseTypeList(tokens *[]Token, tok, max int) (Node, int) {
 
 func parseStatementList(tokens *[]Token, tok, max int) (Node, int) {
 	out := Node{}
-	out.Data = Token{Type: 10, Data: "statement"}
+	out.Data = Token{Type: 10, Data: "slist"}
 	var tmp Node
 
-	c := getClosing((*tokens)[tok].Data)
+	if (*tokens)[tok].Data == ")" || (*tokens)[tok].Data == "}" || (*tokens)[tok].Data == "]" {
+		return out, tok
+	}
 
-	tok++
+	tmp, tok = parseStatement(tokens, tok, max)
+	out.Sub = append(out.Sub, tmp)
 
-	for ; tok < max; tok++ {
+	for ; tok < max; {
 		t := (*tokens)[tok]
 
-		switch t.Data {
-		case c:
+		switch t.Type {
+		case DELIMIT:
 			return out, tok
-		case ",":
+		case LINESEP:
 			tok++
+			tmp, tok = parseStatement(tokens, tok, max)
+			out.Sub = append(out.Sub, tmp)
 		default:
 			errOut("Error: unexpected token when parsing a list of statements", t)
 		}
-
-		tmp, tok = parseStatement(tokens, tok, max)
-		out.Sub = append(out.Sub, tmp)
 	}
 
 	return out, tok

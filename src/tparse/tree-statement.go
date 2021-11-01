@@ -18,10 +18,11 @@ package tparse
 
 // TODO: re-validate this code.  I forgot if it works or not.
 func parseBlock(tokens *[]Token, tok, max int) (Node, int) {
-	out, tmp, def, name := Node{}, Node{}, Node{}, false
+	out, tmp, def, name, sparse := Node{}, Node{}, Node{}, false, false
 	out.Data = Token{Type: 10, Data: "block"}
 	out.IsBlock = true
 	def.Data = Token{Type: 10, Data: "bdef"}
+
 
 	for ;tok < max; tok++{
 		t := (*tokens)[tok]
@@ -29,10 +30,20 @@ func parseBlock(tokens *[]Token, tok, max int) (Node, int) {
 		switch t.Type {
 		case DELIMIT:
 			if t.Data == "(" {
-				tmp, tok = parseParamList(tokens, tok + 1, max)
+				if sparse {
+					tmp, tok = parseStatementList(tokens, tok + 1, max)
+				} else {
+					tmp, tok = parseParamList(tokens, tok + 1, max)
+				}
+				tmp.Data.Data = "()"
 				def.Sub = append(def.Sub, tmp)
 			} else if t.Data == "[" {
-				tmp, tok = parseTypeList(tokens, tok + 1, max)
+				if sparse {
+					tmp, tok = parseStatementList(tokens, tok + 1, max)
+				} else {
+					tmp, tok = parseTypeList(tokens, tok + 1, max)
+				}
+				tmp.Data.Data = "[]"
 				def.Sub = append(def.Sub, tmp)
 			} else {
 				goto BREAK
@@ -50,6 +61,8 @@ func parseBlock(tokens *[]Token, tok, max int) (Node, int) {
 			}
 			switch t.Data {
 			case "else":
+				name = true
+				sparse = true
 				if (*tokens)[tok+1].Data == "if" {
 					tmp.Data = Token{KEYWORD, "elif", t.Line, t.Char}
 					def.Sub = append(def.Sub, tmp)
@@ -58,6 +71,7 @@ func parseBlock(tokens *[]Token, tok, max int) (Node, int) {
 				}
 			case "if", "match", "case", "loop":
 				name = true
+				sparse = true
 				fallthrough
 			case "export", "inline", "raw", "override":
 				tmp.Data = t
@@ -83,7 +97,7 @@ func parseBlock(tokens *[]Token, tok, max int) (Node, int) {
 		case ";":
 
 			tmp, tok = parseStatement(tokens, tok + 1, max)
-		case "/;":
+		case "/;", ":;":
 			REBLOCK:
 			
 			tmp, tok = parseBlock(tokens, tok + 1, max)
@@ -94,6 +108,10 @@ func parseBlock(tokens *[]Token, tok, max int) (Node, int) {
 			} else if (*tokens)[tok].Data == ";/" {
 				tok++
 			}
+		case "/:":
+			tmp, tok = parsePreBlock(tokens, tok + 1, max)
+		case ":":
+			tmp, tok = parsePre(tokens, tok + 1, max)
 		default:
 			errOut("Error: unexpected token when parsing a code block", t)
 		}
@@ -107,7 +125,7 @@ func parseBlock(tokens *[]Token, tok, max int) (Node, int) {
 // This should work once isTypeThenValue properly functions
 func parseStatement(tokens *[]Token, tok, max int) (Node, int) {
 	out := Node{}
-	out.Data = Token{Type: 11, Data: ";"}
+	out.Data = Token{Type: 11, Data: "value"}
 	var tmp Node
 
 	// Check for keyword, definition, then if none of those apply, assume it's a value.
@@ -121,7 +139,6 @@ func parseStatement(tokens *[]Token, tok, max int) (Node, int) {
 		} else {
 			// if not, parse a value
 			tmp, tok = parseValue(tokens, tok, max)
-			out.Data.Data = "value"
 		}
 		out.Sub = append(out.Sub, tmp)
 	}
@@ -160,7 +177,7 @@ func keywordStatement(tokens *[]Token, tok, max int) (Node, int) {
 		out.Sub = append(out.Sub, tmp)
 		tok++
 		if (*tokens)[tok].Data == "(" {
-			tmp, tok = parseValueList(tokens, tok, max)
+			tmp, tok = parseValueList(tokens, tok + 1, max)
 			out.Sub = append(out.Sub, tmp)
 		}
 
@@ -168,7 +185,7 @@ func keywordStatement(tokens *[]Token, tok, max int) (Node, int) {
 			errOut("Could not find struct member list", (*tokens)[tok])
 		}
 
-		tmp, tok = parseParamList(tokens, tok, max)
+		tmp, tok = parseParamList(tokens, tok + 1, max)
 
 	case "goto", "label":
 		if (*tokens)[tok].Type != DEFWORD {
