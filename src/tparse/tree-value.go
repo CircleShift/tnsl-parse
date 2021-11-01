@@ -376,7 +376,7 @@ func parseType(tokens *[]Token, tok, max int, param bool) (Node, int) {
 		var tmp Node
 		switch t.Type {
 		case AUGMENT:
-			if t.Data != "~" && t.Data != "`" {
+			if t.Data != "~" {
 				errOut("Error: unexpected augment token when parsing type", t)
 			}
 			tmp.Data = t
@@ -388,8 +388,15 @@ func parseType(tokens *[]Token, tok, max int, param bool) (Node, int) {
 				tmp.Data = t
 				tok++
 			}
-			
+
 			out.Sub = append(out.Sub, tmp)
+			
+			if param && (*tokens)[tok].Data == "`" {
+				tmp = Node{(*tokens)[tok], false, []Node{}}
+				out.Sub = append(out.Sub, tmp)
+				tok++
+			}
+			
 			return out, tok
 		case DEFWORD:
 			if (*tokens)[tok+1].Data == "(" {
