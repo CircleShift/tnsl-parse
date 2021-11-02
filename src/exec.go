@@ -26,7 +26,7 @@ func main() {
 
 	flag.Parse()
 
-	world := texec.BuildWorld(*inputFile)
+	root := texec.BuildRoot(*inputFile)
 
-	texec.EvalTNSL(world, *progFlags)
+	texec.EvalTNSL(&root, *progFlags)
 }

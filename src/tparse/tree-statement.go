@@ -146,7 +146,7 @@ func parseBlock(tokens *[]Token, tok, max int) (Node, int) {
 // This should work once isTypeThenValue properly functions
 func parseStatement(tokens *[]Token, tok, max int) (Node, int) {
 	out := Node{}
-	out.Data = Token{Type: 11, Data: "value"}
+	out.Data = Token{Type: 10, Data: "value"}
 	var tmp Node
 
 	// Check for keyword, definition, then if none of those apply, assume it's a value.
@@ -262,7 +262,7 @@ func keywordStatement(tokens *[]Token, tok, max int) (Node, int) {
 
 // Should work, but none of this is tested.
 func parseDef(tokens *[]Token, tok, max int) (Node, int) {
-	out := Node{Data: Token{11, "define", 0, 0}}
+	out := Node{Data: Token{10, "define", 0, 0}}
 	var tmp Node
 
 	tmp, tok = parseType(tokens, tok, max, false)

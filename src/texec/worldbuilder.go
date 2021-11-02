@@ -30,7 +30,36 @@ func parseFile(p string) tparse.Node {
 	return tparse.MakeTree(&(tokens), p)
 }
 
-// BuildWorld creates a new TWorld by parsing a main file and recursively parsing imports.
-func BuildWorld(file string) TWorld {
-	return nil
+func buildModule(module tparse.Node) TModule {
+	out := TModule{}
+
+	for n := 0 ; n < len(module.Sub) ; n++ {
+
+		switch module.Sub[n].Data.Type {
+		case 11:
+			
+		case 10:
+
+		}
+	}
+
+	return out
+}
+
+// BuildRoot builds the root module, ready for eval
+func BuildRoot(file tparse.Node) TModule {
+	out := TModule{}
+
+	out.Files = append(out.Files, file)
+
+	for n := 0 ; n < len(file.Sub) ; n++ {
+
+		switch file.Sub[n].Data.Type {
+		case 11:
+
+		case 10:
+		}
+	}
+
+	return out
 }

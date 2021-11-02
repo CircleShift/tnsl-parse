@@ -40,14 +40,9 @@ type TContext struct {
 
 // TModule represents a collection of files and sub-modules in a program
 type TModule struct {
+	Name    string
 	Files   []tparse.Node
 	Globals []map[string]TVariable
 	Sub     []TModule
 }
 
-// TWorld represents the full program
-type TWorld struct {
-	Modules  []TModule
-	MainPath TPath
-	MainFunc tparse.Node
-}

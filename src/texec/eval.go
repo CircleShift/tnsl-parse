@@ -17,8 +17,13 @@
 package texec
 
 import "strings"
+import "tparse"
+
+func isMain(artifact tparse.Node) bool {
+	return false
+}
 
 // EvalTNSL starts the evaluation on the World's main function with the given flags passed to the program
-func EvalTNSL(world *TWorld, f string) {
+func EvalTNSL(world *TModule, f string) {
 	flags := strings.Split(f, " ")
 }
