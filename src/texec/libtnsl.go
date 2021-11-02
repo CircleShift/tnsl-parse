@@ -16,7 +16,10 @@
 
 package texec
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+)
 
 /**
 	libtnsl module stub.  Contains only parts of the io sub-module.
@@ -54,6 +57,73 @@ func tnslResolve(callPath TPath) bool {
 // out is the variable out (if any)
 // in is the variable in (if any)
 // callPath is the function being called.
-func tnslEval(out, in *TVaraiable, callPath TPath) {
+func tnslEval(out, in *TVariable, callPath TPath) {
 
+}
+
+// evaluate a call on a file object
+func tnslFileEval(file, out, in *TVariable, callPath TPath) {
+	
+}
+
+// Generic IO funcs
+
+func tprint(in TVariable) {
+	fmt.Printf("%v", in.Data)
+}
+
+func tprintln(in TVariable) {
+	fmt.Printf("%v\n", in.Data)
+}
+
+func topen_file(in TVariable, out *TVariable) {
+	if in.Type != "string" {
+		panic("Tried to open a file, but did not use a string type for the file name.")
+	}
+	fd, err := os.Create(in.Data.(string))
+	if err != nil {
+		panic(fmt.Sprintf("Failed to open file %v as requested by the program. Aborting.\n%v", in.Data, err))
+	}
+	out.Type = "tnsl.io.File"
+	out.Data = fd
+}
+
+func tclose_file(in TVariable, out *TVariable) {
+	if in.Type != "string" {
+		panic("Tried to open a file, but did not use a string type for the file name.")
+	}
+	fd, err := os.Create(in.Data.(string))
+	if err != nil {
+		panic(fmt.Sprintf("Failed to open file %v as requested by the program. Aborting.\n%v", in.Data, err))
+	}
+	out.Type = "tnsl.io.File"
+	out.Data = fd
+}
+
+
+// File API
+
+// tnsl.io.File.close
+func tfile_close(file *TVariable) {
+	if (*file).Type == "tnsl.io.File" {
+		((*file).Data).(*os.File).Close()
+	}
+}
+
+// tnsl.io.File.read
+func tfile_read(file, out *TVariable) {
+	b := []byte{1}
+	(file.Data).(*os.File).Read(b)
+	if out.Data == "uint8" || out.Data == "int8" {
+		out.Data = b[0]
+	}
+}
+
+// tnsl.io.File.write
+func tfile_write(file, in *TVariable) {
+	b := []byte{1}
+	if in.Data == "uint8" || in.Data == "int8" {
+		b[0] = (in.Data).(byte)
+	}
+	(file.Data).(*os.File).Write(b)
 }

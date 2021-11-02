@@ -17,7 +17,6 @@
 package main
 
 import "fmt"
-import "tparse"
 import "texec"
 import "flag"
 
@@ -27,20 +26,7 @@ func main() {
 
 	flag.Parse()
 
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
+	world := texec.BuildWorld(*inputFile)
 
-	tokens := tparse.TokenizeFile(*inputFile)
-	
-	switch *writeLevel {
-	case 0:
-		fd.WriteString(fmt.Sprint(tokens) + "\n")
-	case 1:
-		tree := tparse.MakeTree(&tokens, *inputFile)
-		fd.WriteString(fmt.Sprint(tree) + "\n")
-	}
-	
-	fd.Close()
+	texec.EvalTNSL(&world, *progFlags)
 }

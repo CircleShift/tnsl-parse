@@ -15,3 +15,10 @@
 */
 
 package texec
+
+import "strings"
+
+// EvalTNSL starts the evaluation on the World's main function with the given flags passed to the program
+func EvalTNSL(world *TWorld, f string) {
+	flags := strings.Split(f, " ")
+}

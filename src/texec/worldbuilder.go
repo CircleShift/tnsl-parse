@@ -22,3 +22,7 @@ import "tparse"
 	worldbuilder.go - take in a file name and construct a TWorld based on it.
 */
 
+// BuildWorld creates a new TWorld by parsing a main file and recursively parsing imports.
+func BuildWorld(file string) *TWorld {
+	return nil
+}

@@ -16,7 +16,9 @@
 
 package texec
 
-// TVaraiable represents a single variable in the program
+import "tparse"
+
+// TVariable represents a single variable in the program
 type TVariable struct {
 	Type string
 	Data interface{}
@@ -25,27 +27,27 @@ type TVariable struct {
 // TPath represents a pointer to the current module and file
 // that the thread is working in.
 type TPath struct {
-	Module     []string,
+	Module     []string
 	Artifact   string
 }
 
 // TContext represents a single thread.
 type TContext struct {
-	CallStack []Node,
-	CallEnv   []TPath,
+	CallStack []tparse.Node
+	CallEnv   []TPath
 	VarMap    []map[string]TVariable
 }
 
 // TModule represents a collection of files and sub-modules in a program
 type TModule struct {
-	Files   []Node,
+	Files   []tparse.Node
 	Globals []map[string]TVariable
 	Sub     []TModule
 }
 
 // TWorld represents the full program
 type TWorld struct {
-	Modules  []TModule,
-	MainPath TPath,
-	MainFunc Node
+	Modules  []TModule
+	MainPath TPath
+	MainFunc tparse.Node
 }
