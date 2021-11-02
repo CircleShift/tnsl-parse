@@ -16,13 +16,21 @@
 
 package texec
 
-import "tparse"
+import (
+	"tparse"
+	"path"
+)
 
 /**
 	worldbuilder.go - take in a file name and construct a TWorld based on it.
 */
 
+func parseFile(p string) tparse.Node {
+	tokens := tparse.TokenizeFile(p)
+	return tparse.MakeTree(&(tokens), p)
+}
+
 // BuildWorld creates a new TWorld by parsing a main file and recursively parsing imports.
-func BuildWorld(file string) *TWorld {
+func BuildWorld(file string) TWorld {
 	return nil
 }

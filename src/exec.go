@@ -28,5 +28,5 @@ func main() {
 
 	world := texec.BuildWorld(*inputFile)
 
-	texec.EvalTNSL(&world, *progFlags)
+	texec.EvalTNSL(world, *progFlags)
 }
