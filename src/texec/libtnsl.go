@@ -54,16 +54,30 @@ func tnslResolve(callPath TPath) bool {
 }
 
 // evaluate a function call.
-// out is the variable out (if any)
 // in is the variable in (if any)
-// callPath is the function being called.
-func tnslEval(out, in *TVariable, callPath TPath) {
-
+// out is the variable out (if any)
+// function is the name of the function
+func tnslEval(in, out *TVariable, function string) {
+	switch function {
+	case "print":
+		tprint(*in)
+	case "println":
+		tprintln(*in)
+	case "open_file":
+		topen_file(*in, out)
+	}
 }
 
 // evaluate a call on a file object
-func tnslFileEval(file, out, in *TVariable, callPath TPath) {
-	
+func tnslFileEval(file, in, out *TVariable, function string) {
+	switch function {
+	case "close":
+		tfile_close(file)
+	case "read":
+		tfile_read(file, out)
+	case "write":
+		tfile_write(file, in)
+	}
 }
 
 // Generic IO funcs
@@ -77,18 +91,6 @@ func tprintln(in TVariable) {
 }
 
 func topen_file(in TVariable, out *TVariable) {
-	if in.Type != "string" {
-		panic("Tried to open a file, but did not use a string type for the file name.")
-	}
-	fd, err := os.Create(in.Data.(string))
-	if err != nil {
-		panic(fmt.Sprintf("Failed to open file %v as requested by the program. Aborting.\n%v", in.Data, err))
-	}
-	out.Type = "tnsl.io.File"
-	out.Data = fd
-}
-
-func tclose_file(in TVariable, out *TVariable) {
 	if in.Type != "string" {
 		panic("Tried to open a file, but did not use a string type for the file name.")
 	}
