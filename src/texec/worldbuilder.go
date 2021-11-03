@@ -22,7 +22,7 @@ import (
 )
 
 /**
-	worldbuilder.go - take in a file name and construct a TWorld based on it.
+	worldbuilder.go - take in a file name and construct a root TModule based on it.
 */
 
 func parseFile(p string) tparse.Node {

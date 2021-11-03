@@ -107,8 +107,8 @@ func topen_file(in TVariable, out *TVariable) {
 
 // tnsl.io.File.close
 func tfile_close(file *TVariable) {
-	if (*file).Type == "tnsl.io.File" {
-		((*file).Data).(*os.File).Close()
+	if file.Type == "tnsl.io.File" {
+		(file.Data).(*os.File).Close()
 	}
 }
 
@@ -123,9 +123,12 @@ func tfile_read(file, out *TVariable) {
 
 // tnsl.io.File.write
 func tfile_write(file, in *TVariable) {
-	b := []byte{1}
+	b := []byte{0}
 	if in.Data == "uint8" || in.Data == "int8" {
 		b[0] = (in.Data).(byte)
+	} else {
+		(file.Data).(*os.File).Close()
+		panic(fmt.Sprintf("Failed to write to file, attempted to use unsupported type (%v)\n", out.Type))
 	}
 	(file.Data).(*os.File).Write(b)
 }
