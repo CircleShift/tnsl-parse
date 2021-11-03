@@ -49,6 +49,26 @@ func isCF(n tparse.Node) bool {
 	return false
 }
 
+// Default values for variables
+func defaultVaule(t string) interface{} {
+	switch t {
+	case "int", "uint", "int8", "uint8", "char", "charp":
+		return 0
+	case "string":
+		return ""
+	}
+}
+
+// Match specific type (t) with general type (g)
+func typeMatches(t, g string) {
+	switch t {
+	case "int", "uint", "int8", "uint8", "char", "charp":
+		return g == "number"
+	case "string":
+		return g == "string"
+	}
+}
+
 // Get the control flow's name
 func cfType(n tparse.Node) string {
 
@@ -59,7 +79,7 @@ func evalType(n tparse.Node) string {
 	return ""
 }
  
-// Returns generated value and general "type" of value (string, number, character)
+// Returns generated value and general "type" of value (string, number)
 func evalLiteral(n tparse.Node) (interface{}, string) {
 
 }
@@ -71,22 +91,35 @@ func evalDef(n tparse.Node, ctx *TContext) {
 	t := evalType(n.Sub[0])
 
 	for i := 0; i < len(n.Sub[1].Sub); i++ {
-		if n.Sub[1].Sub[i].Data.Data == "=" {
-			n.Sub[1].Sub[i].Sub[0]
+		name := n.Sub[1].Sub[i].Data.Data
+		
+		_, prs := ctx.VarMap[name]
+		if prs {
+			panic(fmt.Sprintf("Attempted re-definition of a variable %v", name))
 		}
+
+		val := defaultVaule(t)
+		if n.Sub[1].Sub[i].Data.Data == "=" {
+			name = n.Sub[1].Sub[i].Sub[0]
+			val = evalValue(n.Sub[1].Sub[i].Sub[1], ctx)
+		}
+		
+		ctx.VarMap[name] = TVariable{t, val}
 	}
 }
 
 // Evaluates a value statement
-func evalValue(artifact tparse.Node, ctx *TContext) TVariable {
+func evalValue(artifact tparse.Node, ctx *TContext) interface{} {
 	vars := len(ctx.VarMap) - 1
 }
 
 // Evaluates control flow
-func evalCF(artifact tparse.Node, ctx *TContext) {}
+func evalCF(artifact tparse.Node, ctx *TContext) {
+
+}
 
 // Evaluate a block (Assume that all blocks have only one output for now)
-func evalBlock(artifact tparse.Node, ctx *TContext) TVariable {
+func evalBlock(artifact tparse.Node, ctx *TContext) interface{} {
 	
 }
 
