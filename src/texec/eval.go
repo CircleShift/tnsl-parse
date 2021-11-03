@@ -20,45 +20,65 @@ import "strings"
 import "tparse"
 
 // Check if a block is the main function
-func isMain(artifact tparse.Node) bool {
+func isMain(n tparse.Node) bool {
+	if n.Data.Data == "block" {
+		if n.Sub[0].Data.Data == "bdef" {
+			for i := 0; i < len(n.Sub.Sub); i++ {
+				if n.Sub.Sub[i].Data.Type == tparse.DEFWORD && n.Sub.Sub[i].Data.Data == "main" {
+					return true
+				}
+			}
+		}
+	}
 	return false
 }
 
 // Check if a block is control flow
-func isCF(artifact tparse.Node) bool {
-
+func isCF(n tparse.Node) bool {
+	if n.Data.Data == "block" {
+		if n.Sub[0].Data.Data == "bdef" {
+			for i := 0; i < len(n.Sub.Sub); i++ {
+				if n.Sub.Sub[i].Data.Type == tparse.KEYWORD {
+					if n.Sub.Sub[i].Data.Data == "if" || n.Sub.Sub[i].Data.Data == "elif" || n.Sub.Sub[i].Data.Data == "else" || n.Sub.Sub[i].Data.Data == "match" || n.Sub.Sub[i].Data.Data == "case" || n.Sub.Sub[i].Data.Data == "loop" {
+						return true
+					}
+				}
+			}
+		}
+	}
+	return false
 }
 
 // Get the control flow's name
-func cfType(artifact tparse.Node) string {
+func cfType(n tparse.Node) string {
 
 }
 
 // Get type as string from nodes
-func evalType(artifact tparse.Node) string {
+func evalType(n tparse.Node) string {
 	return ""
 }
  
 // Returns generated value and general "type" of value (string, number, character)
-func evalLiteral(artifact tparse.Node) (interface{}, string) {
+func evalLiteral(n tparse.Node) (interface{}, string) {
 
 }
 
 // Evaluates a definition and sets up a TVariable in the context's var map
-func evalDef(artifact tparse.Node, ctx *TContext) {
+func evalDef(n tparse.Node, ctx *TContext) {
 	vars := len(ctx.VarMap) - 1
 
-	t := evalType(artifact.Sub[0])
+	t := evalType(n.Sub[0])
 
-	for i := 0; i < len(artifact.Sub[1].Sub); i++ {
-		if artifact.Sub[1].Sub[i].Data.Data == "=" {
-			artifact.Sub[1].Sub[i].Sub[0]
+	for i := 0; i < len(n.Sub[1].Sub); i++ {
+		if n.Sub[1].Sub[i].Data.Data == "=" {
+			n.Sub[1].Sub[i].Sub[0]
 		}
 	}
 }
 
 // Evaluates a value statement
-func evalValue(artifact tparse.Node, ctx *TContext) {
+func evalValue(artifact tparse.Node, ctx *TContext) TVariable {
 	vars := len(ctx.VarMap) - 1
 }
 
