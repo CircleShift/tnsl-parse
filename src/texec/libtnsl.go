@@ -128,7 +128,7 @@ func tfile_write(file, in *TVariable) {
 		b[0] = (in.Data).(byte)
 	} else {
 		(file.Data).(*os.File).Close()
-		panic(fmt.Sprintf("Failed to write to file, attempted to use unsupported type (%v)\n", out.Type))
+		panic(fmt.Sprintf("Failed to write to file, attempted to use unsupported type (%v)\n", in.Type))
 	}
 	(file.Data).(*os.File).Write(b)
 }

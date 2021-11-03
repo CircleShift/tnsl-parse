@@ -18,13 +18,14 @@ package texec
 
 import "strings"
 import "tparse"
+import "fmt"
 
 // Check if a block is the main function
 func isMain(n tparse.Node) bool {
 	if n.Data.Data == "block" {
 		if n.Sub[0].Data.Data == "bdef" {
-			for i := 0; i < len(n.Sub.Sub); i++ {
-				if n.Sub.Sub[i].Data.Type == tparse.DEFWORD && n.Sub.Sub[i].Data.Data == "main" {
+			for i := 0; i < len(n.Sub[0].Sub); i++ {
+				if n.Sub[0].Sub[i].Data.Type == tparse.DEFWORD && n.Sub[0].Sub[i].Data.Data == "main" {
 					return true
 				}
 			}
@@ -37,9 +38,9 @@ func isMain(n tparse.Node) bool {
 func isCF(n tparse.Node) bool {
 	if n.Data.Data == "block" {
 		if n.Sub[0].Data.Data == "bdef" {
-			for i := 0; i < len(n.Sub.Sub); i++ {
-				if n.Sub.Sub[i].Data.Type == tparse.KEYWORD {
-					if n.Sub.Sub[i].Data.Data == "if" || n.Sub.Sub[i].Data.Data == "elif" || n.Sub.Sub[i].Data.Data == "else" || n.Sub.Sub[i].Data.Data == "match" || n.Sub.Sub[i].Data.Data == "case" || n.Sub.Sub[i].Data.Data == "loop" {
+			for i := 0; i < len(n.Sub[0].Sub); i++ {
+				if n.Sub[0].Sub[i].Data.Type == tparse.KEYWORD {
+					if n.Sub[0].Sub[i].Data.Data == "if" || n.Sub[0].Sub[i].Data.Data == "elif" || n.Sub[0].Sub[i].Data.Data == "else" || n.Sub[0].Sub[i].Data.Data == "match" || n.Sub[0].Sub[i].Data.Data == "case" || n.Sub[0].Sub[i].Data.Data == "loop" {
 						return true
 					}
 				}
@@ -60,7 +61,7 @@ func defaultVaule(t string) interface{} {
 }
 
 // Match specific type (t) with general type (g)
-func typeMatches(t, g string) {
+func typeMatches(t, g string) bool {
 	switch t {
 	case "int", "uint", "int8", "uint8", "char", "charp":
 		return g == "number"
@@ -93,18 +94,18 @@ func evalDef(n tparse.Node, ctx *TContext) {
 	for i := 0; i < len(n.Sub[1].Sub); i++ {
 		name := n.Sub[1].Sub[i].Data.Data
 		
-		_, prs := ctx.VarMap[name]
+		_, prs := ctx.VarMap[vars][name]
 		if prs {
 			panic(fmt.Sprintf("Attempted re-definition of a variable %v", name))
 		}
 
 		val := defaultVaule(t)
 		if n.Sub[1].Sub[i].Data.Data == "=" {
-			name = n.Sub[1].Sub[i].Sub[0]
+			name = n.Sub[1].Sub[i].Sub[0].Data.Data
 			val = evalValue(n.Sub[1].Sub[i].Sub[1], ctx)
 		}
-		
-		ctx.VarMap[name] = TVariable{t, val}
+
+		ctx.VarMap[vars][name] = TVariable{t, val}
 	}
 }
 
