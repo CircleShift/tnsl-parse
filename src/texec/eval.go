@@ -17,37 +17,23 @@
 package texec
 
 import "strings"
+import "strconv"
+import "unicode"
 import "tparse"
 import "fmt"
 
 // Check if a block is the main function
-func isMain(n tparse.Node) bool {
+func funcName(n tparse.Node) string {
 	if n.Data.Data == "block" {
 		if n.Sub[0].Data.Data == "bdef" {
 			for i := 0; i < len(n.Sub[0].Sub); i++ {
-				if n.Sub[0].Sub[i].Data.Type == tparse.DEFWORD && n.Sub[0].Sub[i].Data.Data == "main" {
-					return true
+				if n.Sub[0].Sub[i].Data.Type == tparse.DEFWORD {
+					return n.Sub[0].Sub[i].Data.Data
 				}
 			}
 		}
 	}
-	return false
-}
-
-// Check if a block is control flow
-func isCF(n tparse.Node) bool {
-	if n.Data.Data == "block" {
-		if n.Sub[0].Data.Data == "bdef" {
-			for i := 0; i < len(n.Sub[0].Sub); i++ {
-				if n.Sub[0].Sub[i].Data.Type == tparse.KEYWORD {
-					if n.Sub[0].Sub[i].Data.Data == "if" || n.Sub[0].Sub[i].Data.Data == "elif" || n.Sub[0].Sub[i].Data.Data == "else" || n.Sub[0].Sub[i].Data.Data == "match" || n.Sub[0].Sub[i].Data.Data == "case" || n.Sub[0].Sub[i].Data.Data == "loop" {
-						return true
-					}
-				}
-			}
-		}
-	}
-	return false
+	return ""
 }
 
 // Default values for variables
@@ -58,21 +44,39 @@ func defaultVaule(t string) interface{} {
 	case "string":
 		return ""
 	}
+	return nil
 }
 
 // Match specific type (t) with general type (g)
 func typeMatches(t, g string) bool {
 	switch t {
-	case "int", "uint", "int8", "uint8", "char", "charp":
-		return g == "number"
+	case "int", "uint", "int8", "uint8":
+		return g == "integer"
+	case "float":
+		return g == "float"
+	case "char", "charp":
+		return g == "char"
 	case "string":
 		return g == "string"
 	}
+	return false
 }
 
 // Get the control flow's name
 func cfType(n tparse.Node) string {
+	if n.Data.Data == "block" {
+		if n.Sub[0].Data.Data == "bdef" {
+			for i := 0; i < len(n.Sub[0].Sub); i++ {
+				if n.Sub[0].Sub[i].Data.Type == tparse.KEYWORD {
+					if n.Sub[0].Sub[i].Data.Data == "if" || n.Sub[0].Sub[i].Data.Data == "elif" || n.Sub[0].Sub[i].Data.Data == "else" || n.Sub[0].Sub[i].Data.Data == "match" || n.Sub[0].Sub[i].Data.Data == "case" || n.Sub[0].Sub[i].Data.Data == "loop" {
+						return n.Sub[0].Sub[i].Data.Data
+					}
+				}
+			}
+		}
+	}
 
+	return ""
 }
 
 // Get type as string from nodes
@@ -81,8 +85,35 @@ func evalType(n tparse.Node) string {
 }
  
 // Returns generated value and general "type" of value (string, number)
-func evalLiteral(n tparse.Node) (interface{}, string) {
+func evalPreLiteral(n tparse.Node) string {
+	r := tparse.StringAsRunes(n.Data.Data)
+	l := len(r)
+	if r[0] == '"' || r[0] == '\'' {
+		return tparse.RunesAsString(r[1:l - 1])
+	}
+	return ""
+}
 
+// Returns generated value and general "type" of value (string, number)
+func evalLiteral(n tparse.Node) (interface{}, string) {
+	r := tparse.StringAsRunes(n.Data.Data)
+	l := len(r)
+
+	if r[0] == '"'  {
+		return tparse.RunesAsString(r[1:l - 1]), "string"
+	} else if r[0] == '\'' {
+		return tparse.RunesAsString(r[1:l - 1]), "char"
+	} else if unicode.IsNumber(r[0]) {
+		if strings.Contains(n.Data.Data, ".") {
+			f, _ := strconv.ParseFloat(n.Data.Data, 64)
+			return f, "float"
+		} else {
+			i, _ := strconv.Atoi(n.Data.Data)
+			return i, "integer"
+		}
+	}
+
+	return nil, ""
 }
 
 // Evaluates a definition and sets up a TVariable in the context's var map
@@ -109,14 +140,25 @@ func evalDef(n tparse.Node, ctx *TContext) {
 	}
 }
 
+func delScopeVars(sV []string, ctx *TContext) {
+	m := len(ctx.VarMap) - 1
+	for i := 0; i < len(sV); i++ {
+		delete(ctx.VarMap[m], sV[i])
+	}
+}
+
 // Evaluates a value statement
 func evalValue(artifact tparse.Node, ctx *TContext) interface{} {
 	vars := len(ctx.VarMap) - 1
 }
 
-// Evaluates control flow
-func evalCF(artifact tparse.Node, ctx *TContext) {
+// Evaluates a loop
+func evalLoop(artifact tparse.Node, ctx *TContext) {
 
+}
+
+func evalIf(artifact tparse.Node, ctx *TContext) bool {
+	var scopeVars []string
 }
 
 // Evaluate a block (Assume that all blocks have only one output for now)
@@ -126,6 +168,6 @@ func evalBlock(artifact tparse.Node, ctx *TContext) interface{} {
 
 
 // EvalTNSL starts the evaluation on the root TModule's main function with the given flags passed to the program
-func EvalTNSL(world *TModule, f string) {
+func EvalTNSL(root *TModule, f string) {
 	flags := strings.Split(f, " ")
 }

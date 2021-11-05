@@ -344,10 +344,10 @@ func TokenizeFile(path string) []Token {
 // StringAsRunes returns a string as a rune slice
 func StringAsRunes(s string) []rune {
 	out := []rune{}
+	var r rune
 	for i, j := 0, 0; i < len(s); i += j {
-		r, w := utf8.DecodeRuneInString(s[i:])
+		r, j = utf8.DecodeRuneInString(s[i:])
 		out = append(out, r)
-		j = w
 	}
 	return out
 }
