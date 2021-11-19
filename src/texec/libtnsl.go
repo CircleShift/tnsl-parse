@@ -28,6 +28,14 @@ import (
 		- io.println
 		- io.open_file
 		- io.File API for file objects
+	
+	Types included:
+		- tnsl.io.File
+		- string ({}charp)
+		- charp
+		- int
+		- float
+		- null
 */
 
 // I really hope this works.
@@ -130,7 +138,7 @@ func tfile_close(file TVariable) {
 func tfile_read(file TVariable) TVariable {
 	b := []byte{1}
 	(file.Data).(*os.File).Read(b)
-	return TVariable{tCharp, rune(b[0])}
+	return TVariable{tCharp, b[0]}
 }
 
 // tnsl.io.File.write
