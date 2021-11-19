@@ -18,31 +18,37 @@ package texec
 
 import "tparse"
 
+// TArtifact represents the path to a specific named object in the node tree.
+type TArtifact struct {
+	Path       []string
+	Name       string
+}
+
+// TType represents the type of a variable (including pre and post unary ops)
+type TType struct {
+	Pre  []string
+	T    TArtifact
+	Post []string
+}
+
 // TVariable represents a single variable in the program
 type TVariable struct {
-	Type string
+	Type TType
 	Data interface{}
 }
 
-// TPath represents a pointer to the current module and file
-// that the thread is working in.
-type TPath struct {
-	Module     []string
-	Artifact   string
-}
+type VarMap map[string]TVariable
 
-// TContext represents a single thread.
+// TContext represents a single call context.
 type TContext struct {
-	CallStack []tparse.Node
-	CallEnv   []TPath
-	VarMap    []map[string]TVariable
+	CallEnv   TArtifact
+	Vars      VarMap
 }
 
 // TModule represents a collection of files and sub-modules in a program
 type TModule struct {
-	Name    string
-	Files   []tparse.Node
-	Globals []map[string]TVariable
-	Sub     []TModule
+	Name       string
+	Artifacts  []tparse.Node
+	Sub        []TModule
 }
 

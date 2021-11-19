@@ -18,6 +18,7 @@ package main
 
 import "fmt"
 import "tparse"
+import "texec"
 import "flag"
 import "os"
 
@@ -35,14 +36,19 @@ func main() {
 		return
 	}
 
-	tokens := tparse.TokenizeFile(*inputFile)
+	
 	
 	switch *writeLevel {
 	case 0:
+		tokens := tparse.TokenizeFile(*inputFile)
 		fd.WriteString(fmt.Sprint(tokens) + "\n")
 	case 1:
+		tokens := tparse.TokenizeFile(*inputFile)
 		tree := tparse.MakeTree(&tokens, *inputFile)
 		fd.WriteString(fmt.Sprint(tree) + "\n")
+	case 2:
+		root := texec.BuildRoot(*inputFile)
+		fd.WriteString(fmt.Sprint(root) + "\n")
 	}
 	
 	fd.Close()

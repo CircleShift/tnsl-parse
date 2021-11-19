@@ -28,5 +28,5 @@ func main() {
 
 	root := texec.BuildRoot(*inputFile)
 
-	texec.EvalTNSL(&root, *progFlags)
+	//texec.EvalTNSL(&root, *progFlags)
 }

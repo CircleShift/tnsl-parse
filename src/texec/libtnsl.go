@@ -30,54 +30,69 @@ import (
 		- io.File API for file objects
 */
 
+// I really hope this works.
+
+// Generic in-built types
+var (
+	
+	tFile = TType{Pre: []string{}, T: TArtifact{Path: []string{"tnsl", "io"}, Name: "File"}, Post: []string{}}
+	tString = TType{Pre: []string{"{}"}, T: TArtifact{Path: []string{}, Name:"charp"}, Post: []string{}}
+	tInt = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name:"int"}, Post: []string{}}
+	tFloat = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name:"float"}, Post: []string{}}
+	tCharp = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name:"charp"}, Post: []string{}}
+	tNull = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name: "null"}, Post: []string{}}
+)
+
 // tells if the stub supports a function
-func tnslResolve(callPath TPath) bool {
-	l := len(callPath.Module)
-	if l < 2 || l > 3 || callPath.Module[0] != "tnsl" || callPath.Module[1] != "io" {
-		return false
+func tnslResolve(callPath TArtifact) int {
+	l := len(callPath.Path)
+	if l < 2 || l > 3 || callPath.Path[0] != "tnsl" || callPath.Path[1] != "io" {
+		return -1
 	}
-	if l > 2 && callPath.Module[2] != "File" {
-		return false
+	if l > 2 && callPath.Path[2] != "File" {
+		return -1
 	}
 
 	if l > 2 {
-		if callPath.Artifact == "write" || callPath.Artifact == "read" || callPath.Artifact == "close" {
-			return true;
+		if callPath.Name == "write" || callPath.Name == "read" || callPath.Name == "close" {
+			return 1;
 		}
 	} else {
-		if callPath.Artifact == "print" || callPath.Artifact == "println" || callPath.Artifact == "open_file" {
-			return true;
+		if callPath.Name == "print" || callPath.Name == "println" || callPath.Name == "open_file" {
+			return 0;
 		}
 	}
 
-	return false
+	return -1
 }
 
 // evaluate a function call.
 // in is the variable in (if any)
 // out is the variable out (if any)
 // function is the name of the function
-func tnslEval(in, out *TVariable, function string) {
+func tnslEval(in TVariable, function string) TVariable {
 	switch function {
 	case "print":
-		tprint(*in)
+		tprint(in)
 	case "println":
-		tprintln(*in)
+		tprintln(in)
 	case "open_file":
-		topen_file(*in, out)
+		return topen_file(in)
 	}
+	return TVariable{tNull, nil}
 }
 
 // evaluate a call on a file object
-func tnslFileEval(file, in, out *TVariable, function string) {
+func tnslFileEval(file, in TVariable, function string) TVariable {
 	switch function {
 	case "close":
 		tfile_close(file)
 	case "read":
-		tfile_read(file, out)
+		return tfile_read(file)
 	case "write":
 		tfile_write(file, in)
 	}
+	return TVariable{tNull, nil}
 }
 
 // Generic IO funcs
@@ -90,45 +105,42 @@ func tprintln(in TVariable) {
 	fmt.Printf("%v\n", in.Data)
 }
 
-func topen_file(in TVariable, out *TVariable) {
-	if in.Type != "string" {
+func topen_file(in TVariable) TVariable {
+	if equateType(in.Type, tString) {
 		panic("Tried to open a file, but did not use a string type for the file name.")
 	}
 	fd, err := os.Create(in.Data.(string))
 	if err != nil {
 		panic(fmt.Sprintf("Failed to open file %v as requested by the program. Aborting.\n%v", in.Data, err))
 	}
-	out.Type = "tnsl.io.File"
-	out.Data = fd
+	return  TVariable{tFile, fd}
 }
 
 
 // File API
 
 // tnsl.io.File.close
-func tfile_close(file *TVariable) {
-	if file.Type == "tnsl.io.File" {
+func tfile_close(file TVariable) {
+	if equateType(file.Type, tFile) {
 		(file.Data).(*os.File).Close()
 	}
 }
 
 // tnsl.io.File.read
-func tfile_read(file, out *TVariable) {
+func tfile_read(file TVariable) TVariable {
 	b := []byte{1}
 	(file.Data).(*os.File).Read(b)
-	if out.Data == "uint8" || out.Data == "int8" {
-		out.Data = b[0]
-	}
+	return TVariable{tCharp, rune(b[0])}
 }
 
 // tnsl.io.File.write
-func tfile_write(file, in *TVariable) {
+func tfile_write(file, in TVariable) {
 	b := []byte{0}
-	if in.Data == "uint8" || in.Data == "int8" {
+	if equateType(file.Type, tFile) && (equateType(in.Type, tCharp) || equateType(in.Type, tInt)) {
 		b[0] = (in.Data).(byte)
+		(file.Data).(*os.File).Write(b)
 	} else {
 		(file.Data).(*os.File).Close()
 		panic(fmt.Sprintf("Failed to write to file, attempted to use unsupported type (%v)\n", in.Type))
 	}
-	(file.Data).(*os.File).Write(b)
 }
