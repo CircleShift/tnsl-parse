@@ -28,8 +28,6 @@ type Token struct {
 type Node struct {
 	Data Token
 
-    IsBlock  bool
-
 	Sub  []Node
 }
 

@@ -46,6 +46,8 @@ var (
 	tFile = TType{Pre: []string{}, T: TArtifact{Path: []string{"tnsl", "io"}, Name: "File"}, Post: []string{}}
 	tString = TType{Pre: []string{"{}"}, T: TArtifact{Path: []string{}, Name:"charp"}, Post: []string{}}
 	tInt = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name:"int"}, Post: []string{}}
+	tByte = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name:"uint8"}, Post: []string{}}
+	tByteArray = TType{Pre: []string{"{}"}, T: TArtifact{Path: []string{}, Name:"uint8"}, Post: []string{}}
 	tFloat = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name:"float"}, Post: []string{}}
 	tCharp = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name:"charp"}, Post: []string{}}
 	tNull = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name: "null"}, Post: []string{}}
@@ -143,10 +145,14 @@ func tfile_read(file TVariable) TVariable {
 
 // tnsl.io.File.write
 func tfile_write(file, in TVariable) {
-	b := []byte{0}
-	if equateType(file.Type, tFile) && (equateType(in.Type, tCharp) || equateType(in.Type, tInt)) {
-		b[0] = (in.Data).(byte)
-		(file.Data).(*os.File).Write(b)
+	if equateType(file.Type, tFile) {
+		if equateType(in.Type, tCharp) || equateType(in.Type, tByte) {
+			b := []byte{0}
+			b[0] = (in.Data).(byte)
+			(file.Data).(*os.File).Write(b)
+		} else if equateType(in.Type, tByteArray) {
+			(file.Data).(*os.File).Write((in.Data).([]byte))
+		}
 	} else {
 		(file.Data).(*os.File).Close()
 		panic(fmt.Sprintf("Failed to write to file, attempted to use unsupported type (%v)\n", in.Type))

@@ -20,7 +20,6 @@ package tparse
 func parseBlock(tokens *[]Token, tok, max int) (Node, int) {
 	out, tmp, def, name, sparse := Node{}, Node{}, Node{}, false, false
 	out.Data = Token{Type: 10, Data: "block"}
-	out.IsBlock = true
 	def.Data = Token{Type: 10, Data: "bdef"}
 
 
@@ -90,7 +89,7 @@ func parseBlock(tokens *[]Token, tok, max int) (Node, int) {
 				if (*tokens)[tok+1].Type != DEFWORD && !name {
 					errOut("You must provide a name for a module or method.", t)
 				} else if !name {
-					tmp.Sub = append(tmp.Sub, Node{(*tokens)[tok+1], false, []Node{}})
+					tmp.Sub = append(tmp.Sub, Node{(*tokens)[tok+1], []Node{}})
 					tok++
 				}
 				tmp.Data = t
@@ -172,9 +171,7 @@ func parseStatement(tokens *[]Token, tok, max int) (Node, int) {
 func keywordStatement(tokens *[]Token, tok, max int) (Node, int) {
 	out := Node{}
 	out.Data = (*tokens)[tok]
-	out.IsBlock = false
 	var tmp Node
-	tmp.IsBlock = false
 
 	if tok + 1 < max {
 		tok++

@@ -108,7 +108,7 @@ func parseUnaryOps(tokens *[]Token, tok, max int) (Node) {
 				if vnode != &out {
 					errOut("Composite values may not use unary operators.", out.Data)
 				}
-				(*vnode) = Node{Token{10, "comp", 0, 0}, false, []Node{Node{}}}
+				(*vnode) = Node{Token{10, "comp", 0, 0}, []Node{Node{}}}
 				(*vnode).Sub[0], tok = parseValueList(tokens, tok + 1, max)
 				val = true
 				comp = true
@@ -123,7 +123,7 @@ func parseUnaryOps(tokens *[]Token, tok, max int) (Node) {
 			if !prs {
 				errOut("Parser bug!  Operator failed to load into AST.", t)
 			} else {
-				(*vnode) = Node{t, false, []Node{Node{}}}
+				(*vnode) = Node{t, []Node{Node{}}}
 				vnode = &((*vnode).Sub[0])
 			}
 		default:
@@ -181,7 +181,7 @@ func parseUnaryOps(tokens *[]Token, tok, max int) (Node) {
 
 // Works? Please test.
 func parseBinaryOp(tokens *[]Token, tok, max int) (Node) {
-	out := Node{IsBlock: false}
+	out := Node{}
 	first := tok
 	var high, highOrder, bincount int = first, 0, 0
 	var curl, brak, parn int = 0, 0, 0
@@ -327,12 +327,12 @@ func parseValue(tokens *[]Token, tok, max int) (Node, int) {
 
 // Works? Please test.
 func parseTypeParams(tokens *[]Token, tok, max int) (Node, int) {
-	out := Node{Data: (*tokens)[tok], IsBlock: false}
+	out := Node{Data: (*tokens)[tok]}
 	tok++
 
 	for ; tok < max; tok++{
 		t := (*tokens)[tok]
-		tmp := Node{IsBlock: false}
+		tmp := Node{}
 		switch t.Type {
 		case DELIMIT:
 			if tok < max {
@@ -368,7 +368,7 @@ func parseTypeParams(tokens *[]Token, tok, max int) (Node, int) {
 
 // TODO: make sure this actually works
 func parseType(tokens *[]Token, tok, max int, param bool) (Node, int) {
-	out := Node{Data: Token{Type: 10, Data: "type"}, IsBlock: false}
+	out := Node{Data: Token{Type: 10, Data: "type"}}
 
 	for ; tok < max; tok++ {
 		t := (*tokens)[tok]
@@ -392,7 +392,7 @@ func parseType(tokens *[]Token, tok, max int, param bool) (Node, int) {
 			out.Sub = append(out.Sub, tmp)
 			
 			if param && (*tokens)[tok].Data == "`" {
-				tmp = Node{(*tokens)[tok], false, []Node{}}
+				tmp = Node{(*tokens)[tok], []Node{}}
 				out.Sub = append(out.Sub, tmp)
 				tok++
 			}

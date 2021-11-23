@@ -31,7 +31,7 @@ func getClosing(start string) string {
 
 // Parse a list of values
 func parseValueList(tokens *[]Token, tok, max int) (Node, int) {
-	out := Node{Data: Token{Type: 10, Data: "vlist"}, IsBlock: false}
+	out := Node{Data: Token{Type: 10, Data: "vlist"}}
 	var tmp Node
 	
 	for ; tok < max; {
@@ -56,7 +56,7 @@ func parseValueList(tokens *[]Token, tok, max int) (Node, int) {
 
 // Parse list of parameters
 func parseParamList(tokens *[]Token, tok, max int) (Node, int) {
-	out := Node{Data: Token{Type: 10, Data: "plist"}, IsBlock: false}
+	out := Node{Data: Token{Type: 10, Data: "plist"}}
 	var tmp Node
 
 	if isTypeThenValue(tokens, tok, max) {
@@ -95,7 +95,7 @@ func parseParamList(tokens *[]Token, tok, max int) (Node, int) {
 
 // Parse a list of types
 func parseTypeList(tokens *[]Token, tok, max int) (Node, int) {
-	out := Node{Data: Token{Type: 10, Data: "tlist"}, IsBlock: false}
+	out := Node{Data: Token{Type: 10, Data: "tlist"}}
 	var tmp Node
 	
 	for ; tok < max; {

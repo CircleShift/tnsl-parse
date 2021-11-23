@@ -17,7 +17,7 @@
 package tparse
 
 func parsePreBlock (tokens *[]Token, tok, max int) (Node, int) {
-	out := Node{IsBlock: true}
+	out := Node{}
 	out.Data = Token{Type: 11, Data: (*tokens)[tok].Data}
 
 	tok++
@@ -29,7 +29,7 @@ func parsePreBlock (tokens *[]Token, tok, max int) (Node, int) {
 			break
 		}
 
-		tmp := Node{Data: t, IsBlock: false}
+		tmp := Node{Data: t}
 		out.Sub = append(out.Sub, tmp)
 	}
 
@@ -37,12 +37,12 @@ func parsePreBlock (tokens *[]Token, tok, max int) (Node, int) {
 }
 
 func parsePre (tokens *[]Token, tok, max int) (Node, int) {
-	out := Node{IsBlock: false}
+	out := Node{}
 	out.Data = Token{Type: 11, Data: (*tokens)[tok].Data}
 
 	tok++
 
-	tmp := Node{Data: (*tokens)[tok], IsBlock: false}
+	tmp := Node{Data: (*tokens)[tok]}
 	out.Sub = append(out.Sub, tmp)
 
 	tok++
