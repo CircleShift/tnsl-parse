@@ -37,10 +37,10 @@ import (
 
 // Returns generated value and general "type" of value (string, number)
 func evalPreLiteral(n tparse.Node) string {
-	r := tparse.StringAsRunes(n.Data.Data)
+	r := []rune(n.Data.Data)
 	l := len(r)
 	if r[0] == '"' || r[0] == '\'' {
-		return tparse.RunesAsString(r[1:l - 1])
+		return string(r[1:l - 1])
 	}
 	return ""
 }

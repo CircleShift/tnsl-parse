@@ -296,7 +296,7 @@ func maxResRunes() int {
 }
 
 func checkRuneGroup(s string) int {
-	rs := StringAsRunes(s)
+	rs := []rune(s)
 
 	if len(rs) == 1 {
 		return checkResRune(rs[0])
@@ -310,7 +310,7 @@ func checkRuneGroup(s string) int {
 }
 
 func checkToken(s string, pre bool) int {
-	rs := StringAsRunes(s)
+	rs := []rune(s)
 
 	if len(rs) == 0 {
 		return -1

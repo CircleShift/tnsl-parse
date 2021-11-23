@@ -157,6 +157,32 @@ func equateType(a, b TType) bool {
 	return true;
 }
 
+// Generate a TType from a 'type' node
+func getType(t tparse.Node) TType {
+	out := TType{}
+
+	return out
+}
+
+// Value generation
+
+func getStringLiteral(v tparse.Node) []byte {
+
+}
+
+func getCharLiteral(v tparse.Node) byte {
+
+}
+
+func getIntLiteral(v tparse.Node) int {
+
+}
+
+// Get a literal value from nodes.  Must specify type of literal to generate.
+func getLiteral(v tparse.Node, t TType) interface{} {
+
+}
+
 //#################
 //# Runtime funcs #
 //#################

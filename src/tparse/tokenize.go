@@ -22,7 +22,6 @@ import (
 	"os"
 	"strings"
 	"unicode"
-	"unicode/utf8"
 )
 
 // Read in a number (may be a float)
@@ -112,7 +111,7 @@ func charLiteral(r *bufio.Reader, line int, char *int) Token {
 func splitResRunes(str string, max, line, start int) []Token {
 	out := []Token{}
 
-	rs := StringAsRunes(str)
+	rs := []rune(str)
 	s, e := 0, max
 
 	if max > len(rs) {
@@ -120,8 +119,8 @@ func splitResRunes(str string, max, line, start int) []Token {
 	}
 
 	for e <= len(rs) && s < len(rs) {
-		if checkRuneGroup(RunesAsString(rs[s:e])) != -1 || e == s+1 {
-			tmp := RunesAsString(rs[s:e])
+		if checkRuneGroup(string(rs[s:e])) != -1 || e == s+1 {
+			tmp := string(rs[s:e])
 			out = append(out, Token{Type: checkRuneGroup(tmp), Data: tmp, Line: line, Char: start + s})
 			s = e
 			if s+max < len(rs) {
@@ -339,35 +338,4 @@ func TokenizeFile(path string) []Token {
 	}
 
 	return stripBlockComments(out)
-}
-
-// StringAsRunes returns a string as a rune slice
-func StringAsRunes(s string) []rune {
-	out := []rune{}
-	var r rune
-	for i, j := 0, 0; i < len(s); i += j {
-		r, j = utf8.DecodeRuneInString(s[i:])
-		out = append(out, r)
-	}
-	return out
-}
-
-// BytesAsRunes returns a byte slice as a rune slice
-func BytesAsRunes(b []byte) []rune {
-	out := []rune{}
-	for i, j := 0, 0; i < len(b); i += j {
-		r, w := utf8.DecodeRune(b[i:])
-		out = append(out, r)
-		j = w
-	}
-	return out
-}
-
-// RunesAsString returns a string from a slice of runes
-func RunesAsString(rs []rune) string {
-	b := strings.Builder{}
-	for _, r := range rs {
-		b.WriteRune(r)
-	}
-	return b.String()
 }

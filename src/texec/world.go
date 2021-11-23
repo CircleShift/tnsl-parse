@@ -49,6 +49,7 @@ type TContext struct {
 type TModule struct {
 	Name       string
 	Artifacts  []tparse.Node
+	Defs       VarMap
 	Sub        []TModule
 }
 
