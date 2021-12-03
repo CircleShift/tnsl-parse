@@ -19,7 +19,7 @@
 # pass a variable
 ;int s = 3
 
-;int8 bitbyte = .2
+;int8 bitbyte = 2
 
 
 # generic scope block
@@ -42,7 +42,7 @@
 # Sig: [output1, output2] (input1, input2)
 # Main may have 
 /;main ({}string str) [int] # Doesn't matter what order the sig is in
-  # Main may also omit either for void sig
+  # Main may also omit either/both for void sig
 
 
   # {} represents a tnsl style array
@@ -66,31 +66,32 @@
 
 
 # The struct keyword is followed by <name> {values}
-;struct s1 {string Name, string Message = "Default message (c-style strings)"}
+;struct S1 {string name, string message}
 
 # Most people should declare as such:
-;struct s1 {
-    string Name,
-    string Message = "Default message (c-style strings)"
+;struct S1 {
+    string
+		name,
+    	message
 }
 
 # When defining a new struct, use {}
-;s1 a = {}
+;S1 a = {}
 # Same as
-;s1 a{}
-;a.Name = "Kyle Gunger"
+;S1 a = {}[S1]
+;a.name = "Kyle Gunger"
 
 ;~s1 b = ~a
-;b~.Name # "Kyle Gunger"
+;b`.name # "Kyle Gunger"
 
 # Quick initialization
-;s1 c = {"", ""}
-# These come in the same order that they do in the struct, so {Name, Message} in this case.
+;S1 c = {"", ""}
+# These come in the same order that they do in the struct, so {name, message} in this case.
 
-# You can also specify
-;s1 d{
-    Message = "Message",
-    Name = "Name"
+# You can also specify the order
+;s1 d = {
+    message = "Message",
+    name = "Name"
 }
 
 
@@ -101,16 +102,12 @@
   1, 2, 3, 4
 }
 
-# Same as
-;{}int a{
-  1, 2, 3, 4
-}
-
 
 # You may also define an initializer like such:
-/;s1 [s1]
+/;S1 [S1]
   # Initializer must be named same as struct, and must return one of the structs as its only output
-  return new s1{"Kyle", "TNSL Creator"}
+  # Called when keyword "new" is used.
+  return {"Kyle", "TNSL Creator"}
 ;/
 
 /; if (i == 3)
@@ -125,12 +122,12 @@
   ;int t = 0
 
   # Case block
-  /;case 1
+  /;case (1)
     ;i = 0
     ;t = 2
     ;break
 
-  ;;case 2
+  ;;case (2)
     ;i = 1
     ;t = 2
     ;break
@@ -141,15 +138,15 @@
   ;/
 
   # You can do stuff here too
-  /; if [t == 2]
+  /; if (t == 2)
     ;i = t - i
 
-  ;;else if [t==3]
+  ;;else if (t == 3)
     ;i = t+i
   ;/
 
   # Second case block
-  /;case 1
+  /;case (1)
     ;i = 4
   ;/
 ;/
@@ -161,10 +158,10 @@
 }
 
 # This seems dumb
-;gen(int) j{2}
+;gen(int) j = {2}
 
 # But this seems dumber
-;{}gen(gen(int)) j{
+;{}gen(gen(int)) j = {
   {{1}},
   {{2}},
   {{3}}

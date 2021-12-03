@@ -43,14 +43,14 @@ import (
 // Generic in-built types
 var (
 	
-	tFile = TType{Pre: []string{}, T: TArtifact{Path: []string{"tnsl", "io"}, Name: "File"}, Post: []string{}}
-	tString = TType{Pre: []string{"{}"}, T: TArtifact{Path: []string{}, Name:"charp"}, Post: []string{}}
-	tInt = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name:"int"}, Post: []string{}}
-	tByte = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name:"uint8"}, Post: []string{}}
-	tByteArray = TType{Pre: []string{"{}"}, T: TArtifact{Path: []string{}, Name:"uint8"}, Post: []string{}}
-	tFloat = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name:"float"}, Post: []string{}}
-	tCharp = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name:"charp"}, Post: []string{}}
-	tNull = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name: "null"}, Post: []string{}}
+	tFile = TType{Pre: []string{}, T: TArtifact{Path: []string{"tnsl", "io"}, Name: "File"}, Post: ""}
+	tString = TType{Pre: []string{"{}"}, T: TArtifact{Path: []string{}, Name:"charp"}, Post: ""}
+	tInt = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name:"int"}, Post: ""}
+	tByte = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name:"uint8"}, Post: ""}
+	tByteArray = TType{Pre: []string{"{}"}, T: TArtifact{Path: []string{}, Name:"uint8"}, Post: ""}
+	tFloat = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name:"float"}, Post: ""}
+	tCharp = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name:"charp"}, Post: ""}
+	tNull = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name: "null"}, Post: ""}
 )
 
 // tells if the stub supports a function
@@ -150,7 +150,7 @@ func tfile_write(file, in TVariable) {
 			b := []byte{0}
 			b[0] = (in.Data).(byte)
 			(file.Data).(*os.File).Write(b)
-		} else if equateType(in.Type, tByteArray) {
+		} else if equateType(in.Type, tByteArray) || equateType(in.Type, tString) {
 			(file.Data).(*os.File).Write((in.Data).([]byte))
 		}
 	} else {

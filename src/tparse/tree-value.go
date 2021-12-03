@@ -410,7 +410,14 @@ func parseType(tokens *[]Token, tok, max int, param bool) (Node, int) {
 				tmp.Data = t
 				tok++
 			}
+			
 			out.Sub = append(out.Sub, tmp)
+
+			if param && (*tokens)[tok].Data == "`" {
+				tmp = Node{(*tokens)[tok], []Node{}}
+				out.Sub = append(out.Sub, tmp)
+				tok++
+			}
 
 			return out, tok
 

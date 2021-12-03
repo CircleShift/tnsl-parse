@@ -14,5 +14,5 @@
    limitations under the License.
 #/
 ;int another = 0
-/; loop (int initial = 0, complex = 2) [initial < max || complex < 40, initial++, complex += 7, another += 2]
+/; loop (int initial = 0, complex = 2) [initial < max || complex < 40; initial++; complex += 7; another += 2]
 ;/

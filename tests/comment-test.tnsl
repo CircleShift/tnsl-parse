@@ -14,14 +14,16 @@
    limitations under the License.
 #/
 
-;/#
-#/;
-
-a/#
-#/a
-
 /;/#
 #/;/
+
+;a a
+
+;a/#
+#/a
+
+; /#
+#/;
 
 /#
     Ok, so this should give no output either

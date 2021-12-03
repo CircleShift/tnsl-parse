@@ -28,7 +28,7 @@ type TArtifact struct {
 type TType struct {
 	Pre  []string
 	T    TArtifact
-	Post []string
+	Post string
 }
 
 // TVariable represents a single variable in the program

@@ -21,7 +21,7 @@ Binaries will be dumped in the "build" folder.
 
 ## Status:
 
-    Parser: sorta works (sometimes)
+    Parser: sorta works sometimes (subtext: AST generater is at least a little broken, but works for at least some use cases)
     Interpreter: broken
 
 With some of the code I've written, I'm kinda supprised that this even compiles.

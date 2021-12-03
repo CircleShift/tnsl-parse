@@ -160,6 +160,43 @@ func equateType(a, b TType) bool {
 // Generate a TType from a 'type' node
 func getType(t tparse.Node) TType {
 	out := TType{}
+	i := 0
+
+	// Pre
+	for ; i < len(t.Sub); i++ {
+		if t.Sub[i].Data.Type == tparse.DEFWORD || t.Sub[i].Data.Type == tparse.KEYTYPE {
+			break
+		} else {
+			out.Pre = append(out.Pre, t.Sub[i].Data.Data)
+		}
+	}
+
+	// T
+	for ; i < len(t.Sub); i++ {
+		if t.Sub[i].Data.Type == tparse.KEYTYPE {
+			out.T.Name = t.Sub[i].Data.Data
+			i++
+			break
+		} else if t.Sub[i].Data.Type == tparse.DEFWORD {
+			if i < len(t.Sub) - 1 {
+				if t.Sub[i + 1].Data.Type == tparse.DEFWORD {
+					out.T.Path = append(out.T.Path, t.Sub[i].Data.Data)
+				} else {
+					out.T.Name = t.Sub[i].Data.Data
+					break
+				}
+			} else {
+				out.T.Name = t.Sub[i].Data.Data
+			}
+		}
+	}
+
+	// Post
+	if i < len(t.Sub) {
+		if t.Sub[i].Data.Data == "`" {
+			out.Post = "`"
+		}
+	}
 
 	return out
 }
@@ -167,20 +204,20 @@ func getType(t tparse.Node) TType {
 // Value generation
 
 func getStringLiteral(v tparse.Node) []byte {
-
+	return []byte{}
 }
 
 func getCharLiteral(v tparse.Node) byte {
-
+	return 0
 }
 
 func getIntLiteral(v tparse.Node) int {
-
+	return 0
 }
 
 // Get a literal value from nodes.  Must specify type of literal to generate.
 func getLiteral(v tparse.Node, t TType) interface{} {
-
+	return 0
 }
 
 //#################

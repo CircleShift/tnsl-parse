@@ -22,10 +22,8 @@
 		;i = 2
 	;/
 
-	/:  include
-		"this"
-		"that"
-	:/
+	:include "this"
+	:include "that"
 
 	# ;; can be used as a quick block re-definition
 
@@ -53,17 +51,17 @@
 	/;method Vector2
 
 		/; operator + (~Vector2 v)
-			;self.x += v`.x
-			;self.y += v`.y
+			;self.x = self.x + v`.x
+			;self.y = self.y + v`.y
 		;/
 
 		/; operator + (int32 a)
-			;self.x += a
-			;self.y += a
+			;self.x = self.x + a
+			;self.y = self.y + a
 		;/
 
 	;/
 
-	;struct FVector2 () {}
+	;struct FVector2 () {float x, y}
 
 ;/
