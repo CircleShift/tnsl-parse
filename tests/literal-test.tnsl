@@ -28,19 +28,19 @@
 
 # Invalid (some may be weeded out through the verify phase):
 
-#;string s ""
+## ;string s ""
 
-#;int 0 i
+## ;int 0 i
 
 # Invalid ops should also be detected if dealing with literals
 
-#;char c ~= 's'
+## ;char c ~= 's'
 
 # Debate over weather these are legal
 
-#;int k = .1
+## ;int k = .1
 
-;int l = 0x01
+;int l = 01
 
 ;int i
-;a a;
+;a a

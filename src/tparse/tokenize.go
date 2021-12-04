@@ -26,16 +26,22 @@ import (
 
 // Read in a number (may be a float)
 func numericLiteral(r *bufio.Reader, line int, char *int) Token {
-	decimal := false
+	decimal, base := false, false
 	run, _, err := r.ReadRune()
 	last := *char
 	b := strings.Builder{}
 
 	for ; err == nil; run, _, err = r.ReadRune() {
-		if (run == '.') && !decimal {
+		if (run == '.') && !decimal && !base {
 			decimal = true
-		} else if !unicode.IsNumber(run) {
+		} else if (run == '.') && (decimal || base) {
 			break
+		} else if !unicode.IsNumber(run) {
+			if decimal || checkResRune(run) != -1 || unicode.IsSpace(run) {
+				break
+			} else if !base {
+				base = true
+			}
 		}
 		*char++
 		b.WriteRune(run)
