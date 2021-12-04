@@ -1,3 +1,5 @@
+#!/bin/bash
+
 PARSECMD=../build/parse
 PARSEFILE=" "
 
