@@ -5,7 +5,7 @@ PARSEFILE=" "
 
 parse () {
 	echo "ATTEMPTING TO PARSE $1-test.tnsl"
-    $PARSECMD $2 -in $1-test.tnsl -out $1-test.tnt
+	$PARSECMD $2 -in $1-test.tnsl -out $1-test.tnt
 	if [ $? -eq 0 ]; then
 		echo "SUCCESS!"
 	fi

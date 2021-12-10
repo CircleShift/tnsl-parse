@@ -45,6 +45,12 @@ func evalPreLiteral(n tparse.Node) string {
 	return ""
 }
 
+//Generate a variable for a module
+// For sub = 0, give the vlist
+func modDef(n tparse.Node, t TType, sub int) ([]string, []TVariable) {
+
+}
+
 // Parse a file and make an AST from it.
 func parseFile(p string) tparse.Node {
 	tokens := tparse.TokenizeFile(p)

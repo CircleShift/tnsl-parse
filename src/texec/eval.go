@@ -19,6 +19,8 @@ package texec
 import "tparse"
 import "fmt"
 
+import "strconv"
+
 /*
 	So here's what I care to support at present:
 	Type checking, basic types, writing to stdout or a file
@@ -38,9 +40,9 @@ import "fmt"
 
 // Error helper
 
-func errOut(path TArtifact, place tparse.Token) {
+func errOut(msg string, place tparse.Token) {
 	fmt.Println("Error in eval:")
-	fmt.Println(path)
+	fmt.Println(msg)
 	fmt.Println(place)
 	panic("EVAL ERROR")
 }
@@ -125,15 +127,15 @@ func getArtifact(a TArtifact, root *TModule) *tparse.Node {
 // Type related stuff
 
 // Checking type equality
-func equateType(a, b TType) bool {
+func equateTypePS(a, b TType, preskip int) bool {
 	if len(a.Pre) != len(b.Pre) || len(a.Post) != len(b.Post) {
 		return false
 	} else if len(a.T.Path) != len(b.T.Path) {
 		return false
 	}
 
-	for i := 0; i < len(a.Pre); i++ {
-		if a.Pre[i] != b.Pre[i] {
+	for i := preskip; i < len(a.Pre); i++ {
+		if a.Pre[i] != b.Pre[i - preskip] {
 			return false
 		}
 	}
@@ -155,6 +157,10 @@ func equateType(a, b TType) bool {
 	}
 
 	return true;
+}
+
+func equateType(a, b TType) bool {
+	return equateTypePS(a, b, 0)
 }
 
 // Generate a TType from a 'type' node
@@ -204,23 +210,72 @@ func getType(t tparse.Node) TType {
 // Value generation
 
 func getStringLiteral(v tparse.Node) []byte {
-	return []byte{}
+	str, err := strconv.Unquote(v.Data.Data)
+
+	if err != nil {
+		errOut("Failed to parse string literal.", v.Data)
+	}
+
+	return []byte(str)
 }
 
 func getCharLiteral(v tparse.Node) byte {
-	return 0
+	val, mb, _, err := strconv.UnquoteChar(v.Data.Data, byte('\''))
+
+	if err != nil || mb == true{
+		errOut("Failed to parse character as single byte.", v.Data)
+	}
+
+	return byte(val)
 }
 
-func getIntLiteral(v tparse.Node) int {
-	return 0
+func getIntLiteral(v tparse.Node) int64 {
+	i, err := strconv.ParseInt(v.Data.Data, 0, 64)
+
+	if err != nil {
+		errOut("Failed to parse integer literal.", v.Data)
+	}
+
+	return i
 }
 
-// Get a literal value from nodes.  Must specify type of literal to generate.
-func getLiteral(v tparse.Node, t TType) interface{} {
-	return 0
+func getLiteral(v tparse.Node) (interface{}, TType) {
+	str, err := strconv.Unquote(v.Data.Data)
+
+	if err == nil {
+		return []byte(str), tString
+	} else {
+		val, mb, _, err := strconv.UnquoteChar(v.Data.Data, byte('\''))
+		
+		if err == nil {
+			return byte(val), tCharp
+		} else {
+			i, err := strconv.ParseInt(v.Data.Data, 0, 64)
+
+			if err == nil {
+				return i, tInt
+			} else {
+				errOut("Failed to parse literal in any way.", v.Data)
+			}
+		}
+	}
+
+	return nil, tNull
 }
+
+//#####################
+//# Finding Artifacts #
+//#####################
+
+
 
 //#################
 //# Runtime funcs #
 //#################
 
+// Value statement parsing
+
+// Get a value from nodes.  Must specify type of value to generate.
+func evalValue(v tparse.Node, t TType) TVariable {
+	return TVariable{}
+}
