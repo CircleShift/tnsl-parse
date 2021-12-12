@@ -108,8 +108,8 @@ func parseUnaryOps(tokens *[]Token, tok, max int) (Node) {
 				if vnode != &out {
 					errOut("Composite values may not use unary operators.", out.Data)
 				}
-				(*vnode) = Node{Token{10, "comp", 0, 0}, []Node{Node{}}}
-				(*vnode).Sub[0], tok = parseValueList(tokens, tok + 1, max)
+				(*vnode), tok = parseValueList(tokens, tok + 1, max)
+				(*vnode).Data.Data = "comp"
 				val = true
 				comp = true
 			default:
@@ -152,7 +152,7 @@ func parseUnaryOps(tokens *[]Token, tok, max int) (Node) {
 			case "[": // Typecasting
 				tmp, tok = parseTypeList(tokens, tok + 1, max)
 				tmp.Data.Data = "cast"
-			case "{": // Array indexing
+			case "{": // Indexing
 				if comp {
 					errOut("Inline composite values can not be indexed.", t)
 				}

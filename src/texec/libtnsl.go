@@ -51,6 +51,9 @@ var (
 	tFloat = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name:"float"}, Post: ""}
 	tCharp = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name:"charp"}, Post: ""}
 	tNull = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name: "null"}, Post: ""}
+
+	// used only in module definintion
+	tEnum = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name: "enum"}, Post: ""}
 )
 
 // tells if the stub supports a function

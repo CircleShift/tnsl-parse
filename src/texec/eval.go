@@ -16,10 +16,11 @@
 
 package texec
 
-import "tparse"
-import "fmt"
-
-import "strconv"
+import (
+	"tparse"
+	"fmt"
+	"strconv"
+)
 
 /*
 	So here's what I care to support at present:
@@ -44,6 +45,14 @@ func errOut(msg string, place tparse.Token) {
 	fmt.Println("Error in eval:")
 	fmt.Println(msg)
 	fmt.Println(place)
+	panic("EVAL ERROR")
+}
+
+func errOutCTX(msg string, place tparse.Token, ctx TContext) {
+	fmt.Println("Error in eval:")
+	fmt.Println(msg)
+	fmt.Println(place)
+	fmt.Println(ctx)
 	panic("EVAL ERROR")
 }
 
@@ -127,33 +136,38 @@ func getArtifact(a TArtifact, root *TModule) *tparse.Node {
 // Type related stuff
 
 // Checking type equality
+// Assumes a is an unknown type and b is a known good type.
 func equateTypePS(a, b TType, preskip int) bool {
-	if len(a.Pre) != len(b.Pre) || len(a.Post) != len(b.Post) {
-		return false
-	} else if len(a.T.Path) != len(b.T.Path) {
+	if len(a.T.Path) != len(b.T.Path) {
+		fmt.Println("thing 1")
 		return false
 	}
 
 	for i := preskip; i < len(a.Pre); i++ {
-		if a.Pre[i] != b.Pre[i - preskip] {
+		if a.Pre[i] == "const" {
+			preskip++
+			continue
+		} else if a.Pre[i] != b.Pre[i - preskip] {
+			fmt.Println("thing 3")
 			return false
 		}
 	}
 
 	for i := 0; i < len(a.T.Path); i++ {
 		if a.T.Path[i] != b.T.Path[i] {
+			fmt.Println("thing 4")
 			return false
 		}
 	}
 
 	if a.T.Name != b.T.Name {
+		fmt.Println("thing 5")
 		return false
 	}
 
-	for i := 0; i < len(a.Post); i++ {
-		if a.Post[i] != b.Post[i] {
-			return false
-		}
+	if (a.Post == "`" && b.Post != "`") || (b.Post == "`" && a.Post != "`") {
+		fmt.Println("thing 6")
+		return false
 	}
 
 	return true;
@@ -229,45 +243,50 @@ func getCharLiteral(v tparse.Node) byte {
 	return byte(val)
 }
 
-func getIntLiteral(v tparse.Node) int64 {
+func getIntLiteral(v tparse.Node) int {
 	i, err := strconv.ParseInt(v.Data.Data, 0, 64)
 
 	if err != nil {
 		errOut("Failed to parse integer literal.", v.Data)
 	}
 
-	return i
+	return int(i)
 }
 
-func getLiteral(v tparse.Node) (interface{}, TType) {
-	str, err := strconv.Unquote(v.Data.Data)
+func getLiteralComposite(v tparse.Node) VarMap {
+	return VarMap{}
+}
 
-	if err == nil {
-		return []byte(str), tString
-	} else {
-		val, mb, _, err := strconv.UnquoteChar(v.Data.Data, byte('\''))
-		
-		if err == nil {
-			return byte(val), tCharp
-		} else {
-			i, err := strconv.ParseInt(v.Data.Data, 0, 64)
+func getLiteral(v tparse.Node, t TType) interface{} {
 
-			if err == nil {
-				return i, tInt
-			} else {
-				errOut("Failed to parse literal in any way.", v.Data)
-			}
-		}
+	if equateType(t, tInt) {
+		return getIntLiteral(v)
+	} else if equateType(t, tCharp) {
+		return getCharLiteral(v)
+	} else if equateType(t, tString) {
+		return getStringLiteral(v)
 	}
 
-	return nil, tNull
+	return getLiteralComposite(v)
 }
+
+
 
 //#####################
 //# Finding Artifacts #
 //#####################
 
+func resolveModArtifact() *TVariable {
+	return nil
+}
 
+func resolveArtifactCall() TVariable {
+	return TVariable{}
+}
+
+func resolveArtifact(a TArtifact, ctx *TContext, root *TModule) *TVariable {
+	return nil
+}
 
 //#################
 //# Runtime funcs #
@@ -278,4 +297,8 @@ func getLiteral(v tparse.Node) (interface{}, TType) {
 // Get a value from nodes.  Must specify type of value to generate.
 func evalValue(v tparse.Node, t TType) TVariable {
 	return TVariable{}
+}
+
+func evalBlock(b tparse.Node, m TArtifact) TVariable {
+	return TVariable{tNull, nil}
 }

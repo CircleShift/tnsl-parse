@@ -45,10 +45,44 @@ func evalPreLiteral(n tparse.Node) string {
 	return ""
 }
 
-//Generate a variable for a module
-// For sub = 0, give the vlist
-func modDef(n tparse.Node, t TType, sub int) ([]string, []TVariable) {
 
+func modDef(n tparse.Node, m *TModule) {
+	t := getType(n.Sub[0])
+	s, vs := modDefVars(n.Sub[1], t)
+	for i := 0; i < len(s); i++ {
+		m.Defs[s[i]] = vs[i]
+	}
+}
+
+// Generate a variable list for a module
+// For sub = 0, give the vlist
+// May be horribly broken.  Definitely doesn't support composite types.
+func modDefVars(n tparse.Node, t TType) ([]string, []TVariable) {
+	s := []string{}
+	v := []TVariable{}
+	for i := 0; i < len(n.Sub); i++ {
+		if n.Sub[i].Data.Type == tparse.DEFWORD {
+			s = append(s, n.Sub[i].Data.Data)
+			v = append(v, TVariable{t, nil})
+		} else if n.Sub[i].Data.Data == "=" && n.Sub[i].Sub[0].Data.Type == tparse.DEFWORD {
+			s = append(s, n.Sub[i].Sub[0].Data.Data)
+			v = append(v, TVariable{t, getLiteral(n.Sub[i].Sub[1], t)})
+		} else {
+			errOut("Unexpected thing in definition. Expected '=' or DEFWORD.", n.Sub[i].Data)
+		}
+	}
+	return s, v
+}
+
+func modDefEnum(n tparse.Node, m *TModule) {
+	name := n.Sub[0].Data.Data
+	t := getType(n.Sub[1].Sub[0])
+	s, vs := modDefVars(n.Sub[2], t)
+	out := TVariable{tEnum, make(VarMap)}
+	for i := 0; i < len(s); i++ {
+		out.Data.(VarMap)[s[i]] = vs[i]
+	}
+	m.Defs[name] = out
 }
 
 // Parse a file and make an AST from it.
@@ -69,6 +103,11 @@ func importFile(f string, m *TModule) {
 			}
 		} else if froot.Sub[n].Data.Data == "include" {
 			importFile(evalPreLiteral(froot.Sub[n].Sub[0]), m)
+		} else if froot.Sub[n].Data.Data == "define" {
+			modDef(froot.Sub[n], m)
+		} else if froot.Sub[n].Data.Data == "enum"{
+			modDefEnum(froot.Sub[n], m)
+		}else if froot.Sub[n].Data.Data == "struct" || froot.Sub[n].Data.Data == "raw"{
 		} else {
 			m.Artifacts = append(m.Artifacts, froot.Sub[n])
 		}
@@ -78,6 +117,7 @@ func importFile(f string, m *TModule) {
 // Build a module from a module block node
 func buildModule(module tparse.Node) TModule {
 	out := TModule{}
+	out.Defs = make(VarMap)
 	out.Name = module.Sub[0].Sub[0].Sub[0].Data.Data
 
 	for n := 1 ; n < len(module.Sub) ; n++ {
@@ -92,6 +132,7 @@ func buildModule(module tparse.Node) TModule {
 // BuildRoot builds the root module, ready for eval
 func BuildRoot(file string) TModule {
 	out := TModule{}
+	out.Defs = make(VarMap)
 
 	importFile(file, &out)
 
