@@ -260,51 +260,44 @@ func getIntLiteral(v tparse.Node) int {
 	return int(i)
 }
 
-func getLiteralArray(v tparse.Node, t TType, ps int) []interface{} {
+func getCompositeLiteral(v tparse.Node) []interface{} {
 	out := []interface{}{}
 
 	if v.Data.Data != "comp" || v.Data.Type != 10 {
 		return out
 	}
 
-	if equateTypePS(t, tInt, ps) {
-		for i := 0; i < len(v.Sub); i++ {
-			out = append(out, getIntLiteral(v.Sub[i]))
+	var add interface{}
+	for i := 0; i < len(v.Sub); i++ {
+		if v.Sub[i].Data.Type == tparse.LITERAL {
+			dat := []rune(v.Sub[i].Data.Data)
+			if dat[0] == '"' {
+				add = getStringLiteral(v.Sub[i])
+			} else if dat[0] == '\'' {
+				add = getCharLiteral(v.Sub[i])
+			} else {
+				add = getIntLiteral(v.Sub[i])
+			}
+		} else if v.Sub[i].Data.Data == "comp" && v.Sub[i].Data.Type == 10 {
+			add = getCompositeLiteral(v.Sub[i])
 		}
-	} else if equateTypePS(t, tCharp, ps) {
-		for i := 0; i < len(v.Sub); i++ {
-			out = append(out, getCharLiteral(v.Sub[i]))
-		}
-	} else if equateTypePS(t, tString, ps) {
-		for i := 0; i < len(v.Sub); i++ {
-			out = append(out, getStringLiteral(v.Sub[i]))
-		}
-	} else if len(t.Pre) > ps && t.Pre[ps] == "{}" {
-		for i := 0; i < len(v.Sub); i++ {
-			out = append(out, getLiteralArray(v.Sub[i], t, ps + 1))
-		}
+		out = append(out, add)
 	}
 
 	return out
 }
 
-func getLiteralPS(v tparse.Node, t TType, ps int) interface{} {
+func getLiteral(v tparse.Node, t TType) interface{} {
 
-	if equateTypePS(t, tInt, ps) {
+	if equateType(t, tInt) {
 		return getIntLiteral(v)
-	} else if equateTypePS(t, tCharp, ps) {
+	} else if equateType(t, tCharp) {
 		return getCharLiteral(v)
-	} else if equateTypePS(t, tString, ps) {
+	} else if equateType(t, tString) {
 		return getStringLiteral(v)
-	} else if len(t.Pre) > ps && t.Pre[ps] == "{}" && v.Data.Data == "comp" && v.Data.Type == 10 {
-		return getLiteralArray(v, t, 1)
 	}
 
-	return nil
-}
-
-func getLiteral(v tparse.Node, t TType) interface{} {
-	return getLiteralPS(v, t, 0)
+	return getCompositeLiteral(v)
 }
 
 
