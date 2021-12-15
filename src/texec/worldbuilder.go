@@ -129,11 +129,12 @@ func importFile(f string, m *TModule) {
 			modDef(froot.Sub[n], m)
 		} else if froot.Sub[n].Data.Data == "enum"{
 			modDefEnum(froot.Sub[n], m)
-		}else if froot.Sub[n].Data.Data == "struct" || froot.Sub[n].Data.Data == "raw"{
+		} else if froot.Sub[n].Data.Data == "struct" || froot.Sub[n].Data.Data == "raw"{
 			modDefStruct(froot.Sub[n], m)
 		} else {
 			m.Artifacts = append(m.Artifacts, froot.Sub[n])
 		}
+		
 	}
 }
 

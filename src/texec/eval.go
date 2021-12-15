@@ -102,7 +102,7 @@ func getNames(root tparse.Node) []string {
 		return getBlockName(root)
 	case "define":
 		return getDefNames(root)
-	case "raw", "switch", "enum":
+	case "raw", "struct", "enum":
 		return getTypeName(root)
 	}
 
@@ -138,7 +138,14 @@ func getArtifact(a TArtifact, root *TModule) *tparse.Node {
 // Checking type equality
 // Assumes a is an unknown type and b is a known good type.
 func equateTypePS(a, b TType, preskip int) bool {
-	if len(a.T.Path) != len(b.T.Path) {
+	cc := 0
+	for i := 0; i < len(a.Pre); i++ {
+		if a.Pre[i] == "const" {
+			cc++
+		}
+	}
+
+	if len(a.T.Path) != len(b.T.Path) || len(a.Pre) - preskip - cc != len(b.Pre) {
 		fmt.Println("thing 1")
 		return false
 	}
@@ -253,21 +260,51 @@ func getIntLiteral(v tparse.Node) int {
 	return int(i)
 }
 
-func getLiteralComposite(v tparse.Node) VarMap {
-	return VarMap{}
+func getLiteralArray(v tparse.Node, t TType, ps int) []interface{} {
+	out := []interface{}{}
+
+	if v.Data.Data != "comp" || v.Data.Type != 10 {
+		return out
+	}
+
+	if equateTypePS(t, tInt, ps) {
+		for i := 0; i < len(v.Sub); i++ {
+			out = append(out, getIntLiteral(v.Sub[i]))
+		}
+	} else if equateTypePS(t, tCharp, ps) {
+		for i := 0; i < len(v.Sub); i++ {
+			out = append(out, getCharLiteral(v.Sub[i]))
+		}
+	} else if equateTypePS(t, tString, ps) {
+		for i := 0; i < len(v.Sub); i++ {
+			out = append(out, getStringLiteral(v.Sub[i]))
+		}
+	} else if len(t.Pre) > ps && t.Pre[ps] == "{}" {
+		for i := 0; i < len(v.Sub); i++ {
+			out = append(out, getLiteralArray(v.Sub[i], t, ps + 1))
+		}
+	}
+
+	return out
+}
+
+func getLiteralPS(v tparse.Node, t TType, ps int) interface{} {
+
+	if equateTypePS(t, tInt, ps) {
+		return getIntLiteral(v)
+	} else if equateTypePS(t, tCharp, ps) {
+		return getCharLiteral(v)
+	} else if equateTypePS(t, tString, ps) {
+		return getStringLiteral(v)
+	} else if len(t.Pre) > ps && t.Pre[ps] == "{}" && v.Data.Data == "comp" && v.Data.Type == 10 {
+		return getLiteralArray(v, t, 1)
+	}
+
+	return nil
 }
 
 func getLiteral(v tparse.Node, t TType) interface{} {
-
-	if equateType(t, tInt) {
-		return getIntLiteral(v)
-	} else if equateType(t, tCharp) {
-		return getCharLiteral(v)
-	} else if equateType(t, tString) {
-		return getStringLiteral(v)
-	}
-
-	return getLiteralComposite(v)
+	return getLiteralPS(v, t, 0)
 }
 
 
