@@ -54,6 +54,7 @@ var (
 
 	// used only in module definintion
 	tEnum = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name: "enum"}, Post: ""}
+	tStruct = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name: "struct"}, Post: ""}
 )
 
 // tells if the stub supports a function

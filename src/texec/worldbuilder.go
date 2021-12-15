@@ -74,6 +74,28 @@ func modDefVars(n tparse.Node, t TType) ([]string, []TVariable) {
 	return s, v
 }
 
+func modDefStruct(n tparse.Node, m *TModule) {
+	var name string
+	tmap := make(TypeMap)
+
+	for i := 0; i < len(n.Sub); i++ {
+		if n.Sub[i].Data.Type == tparse.DEFWORD {
+			name = n.Sub[i].Data.Data
+		} else if n.Sub[i].Data.Data == "plist" && n.Sub[i].Data.Type == 10 {
+			var t TType
+			for j := 0; j < len(n.Sub[i].Sub); j++ {
+				if n.Sub[i].Sub[j].Data.Type == 10 && n.Sub[i].Sub[j].Data.Data == "type" {
+					t = getType(n.Sub[i].Sub[j])
+				} else if n.Sub[i].Sub[j].Data.Type == tparse.DEFWORD {
+					tmap[n.Sub[i].Sub[j].Data.Data] = t
+				}
+			}
+		}
+	}
+
+	m.Defs[name] = TVariable{tStruct, tmap}
+}
+
 func modDefEnum(n tparse.Node, m *TModule) {
 	name := n.Sub[0].Data.Data
 	t := getType(n.Sub[1].Sub[0])
@@ -108,6 +130,7 @@ func importFile(f string, m *TModule) {
 		} else if froot.Sub[n].Data.Data == "enum"{
 			modDefEnum(froot.Sub[n], m)
 		}else if froot.Sub[n].Data.Data == "struct" || froot.Sub[n].Data.Data == "raw"{
+			modDefStruct(froot.Sub[n], m)
 		} else {
 			m.Artifacts = append(m.Artifacts, froot.Sub[n])
 		}
