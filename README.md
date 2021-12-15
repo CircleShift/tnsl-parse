@@ -15,7 +15,7 @@ To build the parser:
 
 To build the interpreter:
 
-    ./gobuild.sh exec
+    ./gobuild.sh tint
 
 Binaries will be dumped in the "build" folder.
 
@@ -41,3 +41,5 @@ Once you have built the parser, it can be invoked in the build folder with `./pa
 ### Other notes
 
 With some of the code I've written, I'm kinda supprised that this even compiles.
+
+tint is short for Tnsl INTerpreter
