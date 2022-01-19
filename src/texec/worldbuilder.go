@@ -118,7 +118,7 @@ func importFile(f string, m *TModule) {
 	froot := parseFile(f)
 	for n := 0 ; n < len(froot.Sub) ; n++ {
 		if froot.Sub[n].Data.Data == "block" {
-			if froot.Sub[n].Sub[0].Sub[0].Data.Data == "module" {
+			if froot.Sub[n].Sub[0].Sub[0].Data.Data == "module" || froot.Sub[n].Sub[0].Sub[0].Data.Data == "export" {
 				m.Sub = append(m.Sub, buildModule(froot.Sub[n]))
 			} else {
 				m.Artifacts = append(m.Artifacts, froot.Sub[n])
@@ -142,7 +142,11 @@ func importFile(f string, m *TModule) {
 func buildModule(module tparse.Node) TModule {
 	out := TModule{}
 	out.Defs = make(VarMap)
-	out.Name = module.Sub[0].Sub[0].Sub[0].Data.Data
+	if module.Sub[0].Sub[0].Data.Data == "export" {
+		out.Name = module.Sub[0].Sub[1].Sub[0].Data.Data
+	} else {
+		out.Name = module.Sub[0].Sub[0].Sub[0].Data.Data
+	}
 
 	for n := 1 ; n < len(module.Sub) ; n++ {
 		if module.Sub[n].Data.Data == "include" {
