@@ -265,33 +265,6 @@ func getIntLiteral(v tparse.Node) int {
 	return int(i)
 }
 
-func getCompositeLiteral(v tparse.Node) []interface{} {
-	out := []interface{}{}
-
-	if v.Data.Data != "comp" || v.Data.Type != 10 {
-		return out
-	}
-
-	var add interface{}
-	for i := 0; i < len(v.Sub); i++ {
-		if v.Sub[i].Data.Type == tparse.LITERAL {
-			dat := []rune(v.Sub[i].Data.Data)
-			if dat[0] == '"' {
-				add = getStringLiteral(v.Sub[i])
-			} else if dat[0] == '\'' {
-				add = getCharLiteral(v.Sub[i])
-			} else {
-				add = getIntLiteral(v.Sub[i])
-			}
-		} else if v.Sub[i].Data.Data == "comp" && v.Sub[i].Data.Type == 10 {
-			add = getCompositeLiteral(v.Sub[i])
-		}
-		out = append(out, add)
-	}
-
-	return out
-}
-
 func getLiteral(v tparse.Node, t TType) interface{} {
 
 	if equateType(t, tInt) {
@@ -302,7 +275,7 @@ func getLiteral(v tparse.Node, t TType) interface{} {
 		return getStringLiteral(v)
 	}
 
-	return getCompositeLiteral(v)
+	return nil
 }
 
 
@@ -330,14 +303,39 @@ func resolveArtifact(a TArtifact, ctx *TContext, root *TModule) *TVariable {
 // Value statement parsing
 
 // Get a value from nodes.  Must specify type of value to generate.
-func evalValue(v tparse.Node, t TType) TVariable {
-	return TVariable{}
+func evalValue(v tparse.Node, ctx *TContext) TVariable {
+	return TVariable{tNull, nil}
+}
+
+// Get a value from nodes.  Must specify type of value to generate.
+func evalDef(v tparse.Node, ctx *TContext) {
+	
+}
+
+// Get a value from nodes.  Must specify type of value to generate.
+func evalCF(v tparse.Node, ctx *TContext) (bool, TVariable) {
+	//scopeVars := []string{}
+	return false, TVariable{tNull, nil}
 }
 
 func evalBlock(b tparse.Node, m TArtifact, params []TVariable) TVariable {
-	//ctx := TContext { m, make(VarMap) }
+	ctx := TContext { m, make(VarMap) }
 
-	
+	for i := 0; i < len(b.Sub); i++ {
+		switch b.Sub[i].Data.Data {
+		case "define":
+			evalDef(b.Sub[i], &ctx)
+		case "value":
+			evalValue(b.Sub[i], &ctx)
+		case "block":
+			ret, val := evalCF(b.Sub[i], &ctx)
+			if ret {
+				return val
+			}
+		case "return":
+			return evalValue(b.Sub[i].Sub[0], &ctx)
+		}
+	}
 
 	return TVariable{tNull, nil}
 }
