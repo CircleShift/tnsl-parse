@@ -28,5 +28,5 @@ func main() {
 
 	root := texec.BuildRoot(*inputFile)
 
-	//texec.EvalTNSL(&root, *progFlags)
+	fmt.Printf("Program end.  Returned %v.\n", texec.EvalTNSL(&root, *progFlags))
 }

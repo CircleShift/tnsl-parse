@@ -20,6 +20,7 @@ import (
 	"tparse"
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 /*
@@ -80,8 +81,11 @@ func getBlockName(block tparse.Node) []string {
 	for i := 0; i < len(block.Sub[0].Sub); i++ {
 		if block.Sub[0].Sub[i].Data.Type == tparse.DEFWORD {
 			out = append(out, block.Sub[0].Sub[i].Data.Data)
+		} else if block.Sub[0].Sub[i].Data.Data == "method" {
+			out = append(out, block.Sub[0].Sub[i].Sub[0].Data.Data)
 		}
 	}
+	fmt.Println(out)
 	return out
 }
 
@@ -112,6 +116,7 @@ func getNames(root tparse.Node) []string {
 // Find an artifact from a path and the root node
 func getArtifact(a TArtifact, root *TModule) *tparse.Node {
 	mod := root
+	
 	for i := 0; i < len(a.Path); i++ {
 		for j := 0; j < len(mod.Sub); j++ {
 			if mod.Sub[j].Name == a.Path[i] {
@@ -123,8 +128,8 @@ func getArtifact(a TArtifact, root *TModule) *tparse.Node {
 
 	for i := 0; i < len(mod.Artifacts); i++ {
 		n := getNames(mod.Artifacts[i])
-		for i := 0; i < len(n); i++ {
-			if n[i] == a.Name {
+		for j := 0; j < len(n); j++ {
+			if n[j] == a.Name {
 				return &(mod.Artifacts[i])
 			}
 		}
@@ -146,7 +151,7 @@ func equateTypePS(a, b TType, preskip int) bool {
 	}
 
 	if len(a.T.Path) != len(b.T.Path) || len(a.Pre) - preskip - cc != len(b.Pre) {
-		fmt.Println("thing 1")
+		fmt.Println("[EVAL] Equate type died at len check.")
 		return false
 	}
 
@@ -155,25 +160,25 @@ func equateTypePS(a, b TType, preskip int) bool {
 			preskip++
 			continue
 		} else if a.Pre[i] != b.Pre[i - preskip] {
-			fmt.Println("thing 3")
+			fmt.Println("[EVAL] Equate type died at pre check.")
 			return false
 		}
 	}
 
 	for i := 0; i < len(a.T.Path); i++ {
 		if a.T.Path[i] != b.T.Path[i] {
-			fmt.Println("thing 4")
+			fmt.Println("[EVAL] Equate type died at path check.")
 			return false
 		}
 	}
 
 	if a.T.Name != b.T.Name {
-		fmt.Println("thing 5")
+		fmt.Println("[EVAL] Equate type died at name check.")
 		return false
 	}
 
 	if (a.Post == "`" && b.Post != "`") || (b.Post == "`" && a.Post != "`") {
-		fmt.Println("thing 6")
+		fmt.Println("[EVAL] Equate type died at rel check.")
 		return false
 	}
 
@@ -306,12 +311,12 @@ func getLiteral(v tparse.Node, t TType) interface{} {
 //# Finding Artifacts #
 //#####################
 
-func resolveModArtifact() *TVariable {
+func resolveModArtifact(a TArtifact) *TVariable {
 	return nil
 }
 
-func resolveArtifactCall() TVariable {
-	return TVariable{}
+func resolveArtifactCall(a TArtifact, params []TVariable) TVariable {
+	return TVariable{tNull, nil}
 }
 
 func resolveArtifact(a TArtifact, ctx *TContext, root *TModule) *TVariable {
@@ -329,6 +334,29 @@ func evalValue(v tparse.Node, t TType) TVariable {
 	return TVariable{}
 }
 
-func evalBlock(b tparse.Node, m TArtifact) TVariable {
+func evalBlock(b tparse.Node, m TArtifact, params []TVariable) TVariable {
+	//ctx := TContext { m, make(VarMap) }
+
+	
+
 	return TVariable{tNull, nil}
+}
+
+func EvalTNSL(root *TModule, args string) TVariable {
+	sarg := strings.Split(args, " ")
+	
+	targ := TVariable {
+		TType {
+			[]string{"{}", "{}"},
+			TArtifact { []string{}, "charp" },
+			"" },
+		sarg }
+
+	mainArt := TArtifact { []string{}, "main" }
+
+	mainNod := getArtifact(mainArt, root)
+	
+	fmt.Println(mainNod)
+
+	return evalBlock(*mainNod, mainArt, []TVariable{targ})
 }
