@@ -151,7 +151,6 @@ func equateTypePS(a, b TType, preskip int) bool {
 	}
 
 	if len(a.T.Path) != len(b.T.Path) || len(a.Pre) - preskip - cc != len(b.Pre) {
-		fmt.Println("[EVAL] Equate type died at len check.")
 		return false
 	}
 
@@ -160,25 +159,21 @@ func equateTypePS(a, b TType, preskip int) bool {
 			preskip++
 			continue
 		} else if a.Pre[i] != b.Pre[i - preskip] {
-			fmt.Println("[EVAL] Equate type died at pre check.")
 			return false
 		}
 	}
 
 	for i := 0; i < len(a.T.Path); i++ {
 		if a.T.Path[i] != b.T.Path[i] {
-			fmt.Println("[EVAL] Equate type died at path check.")
 			return false
 		}
 	}
 
 	if a.T.Name != b.T.Name {
-		fmt.Println("[EVAL] Equate type died at name check.")
 		return false
 	}
 
 	if (a.Post == "`" && b.Post != "`") || (b.Post == "`" && a.Post != "`") {
-		fmt.Println("[EVAL] Equate type died at rel check.")
 		return false
 	}
 
@@ -265,6 +260,14 @@ func getIntLiteral(v tparse.Node) int {
 	return int(i)
 }
 
+func getLiteralComposite(v tparse.Node) []interface{} {
+	out := []interface{}{}
+
+	for i := 0; i < len(v.Sub); i++ {
+		getLiteral(v.Sub)
+	}
+}
+
 func getLiteral(v tparse.Node, t TType) interface{} {
 
 	if equateType(t, tInt) {
@@ -275,10 +278,23 @@ func getLiteral(v tparse.Node, t TType) interface{} {
 		return getStringLiteral(v)
 	}
 
-	return nil
+	return getLiteralComposite()
 }
 
+func compositeToStruct(str TVariable, cmp []interface{}) VarMap {
+	vars = str.Data.([]TVariable)
+	if len(vars) != len(cmp) {
+		return nil
+	}
+	
+	out := make(VarMap)
 
+	for i:=0;i<len(vars);i++ {
+		out[vars[i].Data.string] = TVariable{vars[i].Type, cmp[i]}
+	}
+
+	return out
+}
 
 //#####################
 //# Finding Artifacts #
@@ -302,17 +318,25 @@ func resolveArtifact(a TArtifact, ctx *TContext, root *TModule) *TVariable {
 
 // Value statement parsing
 
-// Get a value from nodes.  Must specify type of value to generate.
+// Parse a value node
 func evalValue(v tparse.Node, ctx *TContext) TVariable {
+	if v.Data.Data == "=" {
+
+	}
 	return TVariable{tNull, nil}
 }
 
-// Get a value from nodes.  Must specify type of value to generate.
+// Generate a value for a definition
+func evalDefVal(v tparse.Node, , ctx *TContext) {
+	
+}
+
+// Eval a definition
 func evalDef(v tparse.Node, ctx *TContext) {
 	
 }
 
-// Get a value from nodes.  Must specify type of value to generate.
+// Eval a control flow
 func evalCF(v tparse.Node, ctx *TContext) (bool, TVariable) {
 	//scopeVars := []string{}
 	return false, TVariable{tNull, nil}

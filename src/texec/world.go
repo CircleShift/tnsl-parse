@@ -38,7 +38,6 @@ type TVariable struct {
 }
 
 type VarMap map[string]TVariable
-type TypeMap map[string]TType
 
 // TContext represents a single call context.
 type TContext struct {

@@ -18,6 +18,7 @@ package texec
 
 import (
 	"tparse"
+	"fmt"
 )
 
 /**
@@ -76,7 +77,7 @@ func modDefVars(n tparse.Node, t TType) ([]string, []TVariable) {
 
 func modDefStruct(n tparse.Node, m *TModule) {
 	var name string
-	tmap := make(TypeMap)
+	tvlist := []TVariable{}
 
 	for i := 0; i < len(n.Sub); i++ {
 		if n.Sub[i].Data.Type == tparse.DEFWORD {
@@ -87,13 +88,13 @@ func modDefStruct(n tparse.Node, m *TModule) {
 				if n.Sub[i].Sub[j].Data.Type == 10 && n.Sub[i].Sub[j].Data.Data == "type" {
 					t = getType(n.Sub[i].Sub[j])
 				} else if n.Sub[i].Sub[j].Data.Type == tparse.DEFWORD {
-					tmap[n.Sub[i].Sub[j].Data.Data] = t
+					tvlist = append(tvlist, TVariable{t, n.Sub[i].Sub[j].Data.Data})
 				}
 			}
 		}
 	}
 
-	m.Defs[name] = TVariable{tStruct, tmap}
+	m.Defs[name] = TVariable{tStruct, tvlist}
 }
 
 func modDefEnum(n tparse.Node, m *TModule) {
@@ -115,6 +116,7 @@ func parseFile(p string) tparse.Node {
 
 // Import a file and auto-import sub-modules and files
 func importFile(f string, m *TModule) {
+	fmt.Printf("[INFO] Importing file %s\n", f)
 	froot := parseFile(f)
 	for n := 0 ; n < len(froot.Sub) ; n++ {
 		if froot.Sub[n].Data.Data == "block" {
@@ -124,6 +126,7 @@ func importFile(f string, m *TModule) {
 				m.Artifacts = append(m.Artifacts, froot.Sub[n])
 			}
 		} else if froot.Sub[n].Data.Data == "include" {
+			fmt.Printf("[INCLUDE] %s\n", evalPreLiteral(froot.Sub[n].Sub[0]))
 			importFile(evalPreLiteral(froot.Sub[n].Sub[0]), m)
 		} else if froot.Sub[n].Data.Data == "define" {
 			modDef(froot.Sub[n], m)
@@ -136,6 +139,7 @@ func importFile(f string, m *TModule) {
 		}
 		
 	}
+	fmt.Printf("[INFO] File %s has been imported.\n", f)
 }
 
 // Build a module from a module block node
@@ -148,11 +152,16 @@ func buildModule(module tparse.Node) TModule {
 		out.Name = module.Sub[0].Sub[0].Sub[0].Data.Data
 	}
 
+	fmt.Printf("[INFO] Found module %s\n", out.Name)
+
 	for n := 1 ; n < len(module.Sub) ; n++ {
 		if module.Sub[n].Data.Data == "include" {
+			fmt.Printf("[INCLUDE] %s\n", evalPreLiteral(module.Sub[n].Sub[0]))
 			importFile(evalPreLiteral(module.Sub[n].Sub[0]), &out)
 		}
 	}
+
+	fmt.Printf("[INFO] Finished loading module %s\n", out.Name)
 
 	return out
 }
