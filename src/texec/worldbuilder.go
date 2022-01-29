@@ -69,7 +69,7 @@ func modDefVars(n tparse.Node, t TType) ([]string, []TVariable) {
 			s = append(s, n.Sub[i].Sub[0].Data.Data)
 			v = append(v, TVariable{t, getLiteral(n.Sub[i].Sub[1], t)})
 		} else {
-			errOut("Unexpected thing in definition. Expected '=' or DEFWORD.", n.Sub[i].Data)
+			errOut(fmt.Sprintf("Unexpected thing in definition. Expected '=' or DEFWORD. %v", n.Sub[i].Data))
 		}
 	}
 	return s, v

@@ -36,23 +36,33 @@ import (
 	This subset should theoretically be enough to write a compiler.
 */
 
+var (
+	// Program to run
+	prog *TModule
+	// Current artifact
+	cart TArtifact
+
+	//Default null value
+	null = TVariable{tNull, nil}
+)
+
 //################
 //# Helper Funcs #
 //################
 
 // Error helper
 
-func errOut(msg string, place tparse.Token) {
+func errOut(msg string) {
 	fmt.Println("Error in eval:")
 	fmt.Println(msg)
-	fmt.Println(place)
+	fmt.Println(cart)
 	panic("EVAL ERROR")
 }
 
-func errOutCTX(msg string, place tparse.Token, ctx TContext) {
+func errOutCTX(msg string, ctx VarMap) {
 	fmt.Println("Error in eval:")
 	fmt.Println(msg)
-	fmt.Println(place)
+	fmt.Println(cart)
 	fmt.Println(ctx)
 	panic("EVAL ERROR")
 }
@@ -83,6 +93,12 @@ func getBlockName(block tparse.Node) []string {
 			out = append(out, block.Sub[0].Sub[i].Data.Data)
 		} else if block.Sub[0].Sub[i].Data.Data == "method" {
 			out = append(out, block.Sub[0].Sub[i].Sub[0].Data.Data)
+		} else if block.Sub[0].Sub[i].Data.Type == tparse.KEYWORD {
+			switch block.Sub[0].Sub[i].Data.Data {
+			case "if", "elif", "else", "loop", "match", "case", "default":
+				out = append(out, block.Sub[0].Sub[i].Data.Data)
+			default:
+			}
 		}
 	}
 	fmt.Println(out)
@@ -113,9 +129,8 @@ func getNames(root tparse.Node) []string {
 	return []string{}
 }
 
-// Find an artifact from a path and the root node
-func getArtifact(a TArtifact, root *TModule) *tparse.Node {
-	mod := root
+func getModule(a TArtifact) *TModule {
+	mod := prog
 	
 	for i := 0; i < len(a.Path); i++ {
 		for j := 0; j < len(mod.Sub); j++ {
@@ -123,8 +138,58 @@ func getArtifact(a TArtifact, root *TModule) *tparse.Node {
 				mod = &(mod.Sub[j])
 				break
 			}
+			if j + 1 == len(mod.Sub) {
+				errOut(fmt.Sprintf("Failed to find module %v", a))
+			}
 		}
 	}
+
+	return mod
+}
+
+func getModuleRelative(mod *TModule, a TArtifact) *TModule {
+	for i := 0; i < len(a.Path); i++ {
+		for j := 0; j < len(mod.Sub); j++ {
+			if mod.Sub[j].Name == a.Path[i] {
+				mod = &(mod.Sub[j])
+				break
+			}
+			if j + 1 == len(mod.Sub) {
+				return nil
+			}
+		}
+	}
+
+	return mod
+}
+
+func getModuleInPath(m int) *TModule {
+	mod := prog
+	
+	if m > len(cart.Path) {
+		m = len(cart.Path)
+	} else if m <= 0 {
+		return mod
+	}
+
+	for i := 0; i < m; i++ {
+		for j := 0; j < len(mod.Sub); j++ {
+			if mod.Sub[j].Name == cart.Path[i] {
+				mod = &(mod.Sub[j])
+				break
+			}
+			if j + 1 == len(mod.Sub) {
+				errOut(fmt.Sprintf("Failed to find module %d in path %v", m, cart))
+			}
+		}
+	}
+
+	return mod
+}
+
+// Find an artifact from a path and the root node
+func getNode(a TArtifact) *tparse.Node {
+	mod := getModule(a)
 
 	for i := 0; i < len(mod.Artifacts); i++ {
 		n := getNames(mod.Artifacts[i])
@@ -135,7 +200,72 @@ func getArtifact(a TArtifact, root *TModule) *tparse.Node {
 		}
 	}
 
+	errOut(fmt.Sprintf("Failed to find node %v", a))
 	return nil
+}
+
+func getNodeRelative(s TArtifact) *tparse.Node {
+
+	for i := len(cart.Path); i >= 0; i-- {
+		tmpmod := getModuleRelative(getModuleInPath(i), s)
+		if tmpmod == nil {
+			continue
+		}
+
+		for i := 0; i < len(tmpmod.Artifacts); i++ {
+			n := getNames(tmpmod.Artifacts[i])
+			for j := 0; j < len(n); j++ {
+				if n[j] == s.Name {
+					return &(tmpmod.Artifacts[i])
+				}
+			}
+		}
+	}
+
+	errOut(fmt.Sprintf("Failed to find node %v", s))
+	return nil
+}
+
+func getModDefRelative(s TArtifact) TVariable {
+
+	for i := len(cart.Path); i >= 0; i-- {
+		tmpmod := getModuleRelative(getModuleInPath(i), s)
+		if tmpmod == nil {
+			continue
+		}
+
+		def, prs := tmpmod.Defs[s.Name]
+
+		if prs {
+			return def
+		}
+	}
+
+	errOut(fmt.Sprintf("Failed to resolve mod def artifact %v", s))
+	return null
+}
+
+// Returns a mod definition, requires a resolved artifact
+func getModDef(a TArtifact) TVariable {
+	mod := prog
+	
+	for i := 0; i < len(a.Path); i++ {
+		for j := 0; j < len(mod.Sub); j++ {
+			if mod.Sub[j].Name == a.Path[i] {
+				mod = &(mod.Sub[j])
+				break
+			}
+		}
+	}
+
+	def, prs := mod.Defs[a.Name]
+
+	if prs {
+		return def
+	}
+
+	errOut(fmt.Sprintf("Failed to resolve mod def artifact %v", a))
+	return null
 }
 
 // Type related stuff
@@ -234,7 +364,7 @@ func getStringLiteral(v tparse.Node) []byte {
 	str, err := strconv.Unquote(v.Data.Data)
 
 	if err != nil {
-		errOut("Failed to parse string literal.", v.Data)
+		errOut(fmt.Sprintf("Failed to parse string literal %v", v.Data))
 	}
 
 	return []byte(str)
@@ -244,7 +374,7 @@ func getCharLiteral(v tparse.Node) byte {
 	val, mb, _, err := strconv.UnquoteChar(v.Data.Data, byte('\''))
 
 	if err != nil || mb == true{
-		errOut("Failed to parse character as single byte.", v.Data)
+		errOut(fmt.Sprintf("Failed to parse character as single byte. %v", v.Data))
 	}
 
 	return byte(val)
@@ -254,7 +384,7 @@ func getIntLiteral(v tparse.Node) int {
 	i, err := strconv.ParseInt(v.Data.Data, 0, 64)
 
 	if err != nil {
-		errOut("Failed to parse integer literal.", v.Data)
+		errOut(fmt.Sprintf("Failed to parse integer literal. %v", v.Data))
 	}
 
 	return int(i)
@@ -264,8 +394,18 @@ func getLiteralComposite(v tparse.Node) []interface{} {
 	out := []interface{}{}
 
 	for i := 0; i < len(v.Sub); i++ {
-		getLiteral(v.Sub)
+		if v.Sub[i].Data.Data[0] == '"' {
+			out = append(out, getStringLiteral(v.Sub[i]))
+		} else if v.Sub[i].Data.Data[0] == '\'' {
+			out = append(out, getStringLiteral(v.Sub[i]))
+		} else if v.Sub[i].Data.Data == "comp" {
+			out = append(out, getLiteralComposite(v.Sub[i]))
+		} else {
+			out = append(out, getIntLiteral(v.Sub[i]))
+		}
 	}
+
+	return out
 }
 
 func getLiteral(v tparse.Node, t TType) interface{} {
@@ -278,11 +418,11 @@ func getLiteral(v tparse.Node, t TType) interface{} {
 		return getStringLiteral(v)
 	}
 
-	return getLiteralComposite()
+	return getLiteralComposite(v)
 }
 
 func compositeToStruct(str TVariable, cmp []interface{}) VarMap {
-	vars = str.Data.([]TVariable)
+	vars := str.Data.([]TVariable)
 	if len(vars) != len(cmp) {
 		return nil
 	}
@@ -290,7 +430,7 @@ func compositeToStruct(str TVariable, cmp []interface{}) VarMap {
 	out := make(VarMap)
 
 	for i:=0;i<len(vars);i++ {
-		out[vars[i].Data.string] = TVariable{vars[i].Type, cmp[i]}
+		out[vars[i].Data.(string)] = TVariable{vars[i].Type, cmp[i]}
 	}
 
 	return out
@@ -305,10 +445,10 @@ func resolveModArtifact(a TArtifact) *TVariable {
 }
 
 func resolveArtifactCall(a TArtifact, params []TVariable) TVariable {
-	return TVariable{tNull, nil}
+	return null
 }
 
-func resolveArtifact(a TArtifact, ctx *TContext, root *TModule) *TVariable {
+func resolveArtifact(a TArtifact, ctx *VarMap) *TVariable {
 	return nil
 }
 
@@ -319,31 +459,31 @@ func resolveArtifact(a TArtifact, ctx *TContext, root *TModule) *TVariable {
 // Value statement parsing
 
 // Parse a value node
-func evalValue(v tparse.Node, ctx *TContext) TVariable {
+func evalValue(v tparse.Node, ctx *VarMap) TVariable {
 	if v.Data.Data == "=" {
 
 	}
-	return TVariable{tNull, nil}
+	return null
 }
 
 // Generate a value for a definition
-func evalDefVal(v tparse.Node, , ctx *TContext) {
+func evalDefVal(v tparse.Node, ctx *VarMap) {
 	
 }
 
 // Eval a definition
-func evalDef(v tparse.Node, ctx *TContext) {
+func evalDef(v tparse.Node, ctx *VarMap) {
 	
 }
 
 // Eval a control flow
-func evalCF(v tparse.Node, ctx *TContext) (bool, TVariable) {
+func evalCF(v tparse.Node, ctx *VarMap) (bool, TVariable) {
 	//scopeVars := []string{}
-	return false, TVariable{tNull, nil}
+	return false, null
 }
 
-func evalBlock(b tparse.Node, m TArtifact, params []TVariable) TVariable {
-	ctx := TContext { m, make(VarMap) }
+func evalBlock(b tparse.Node, params []TVariable) TVariable {
+	ctx := make(VarMap)
 
 	for i := 0; i < len(b.Sub); i++ {
 		switch b.Sub[i].Data.Data {
@@ -361,10 +501,13 @@ func evalBlock(b tparse.Node, m TArtifact, params []TVariable) TVariable {
 		}
 	}
 
-	return TVariable{tNull, nil}
+	return null
 }
 
 func EvalTNSL(root *TModule, args string) TVariable {
+	prog = root
+	cart = TArtifact { []string{}, "main" }
+
 	sarg := strings.Split(args, " ")
 	
 	targ := TVariable {
@@ -374,11 +517,9 @@ func EvalTNSL(root *TModule, args string) TVariable {
 			"" },
 		sarg }
 
-	mainArt := TArtifact { []string{}, "main" }
-
-	mainNod := getArtifact(mainArt, root)
+	mainNod := getNode(cart)
 	
 	fmt.Println(mainNod)
 
-	return evalBlock(*mainNod, mainArt, []TVariable{targ})
+	return evalBlock(*mainNod, []TVariable{targ})
 }

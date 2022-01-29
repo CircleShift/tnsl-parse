@@ -39,12 +39,6 @@ type TVariable struct {
 
 type VarMap map[string]TVariable
 
-// TContext represents a single call context.
-type TContext struct {
-	CallEnv   TArtifact
-	Vars      VarMap
-}
-
 // TModule represents a collection of files and sub-modules in a program
 type TModule struct {
 	Name       string
