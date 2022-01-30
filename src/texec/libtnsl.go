@@ -112,11 +112,19 @@ func tnslFileEval(file, in TVariable, function string) TVariable {
 // Generic IO funcs
 
 func tprint(in TVariable) {
-	fmt.Printf("%v", in.Data)
+	if equateType(in.Type, tString) {
+		fmt.Print(in.Data.(string))
+	} else {
+		fmt.Print(in.Data)
+	}
 }
 
 func tprintln(in TVariable) {
-	fmt.Printf("%v\n", in.Data)
+	if equateType(in.Type, tString) {
+		fmt.Println(in.Data.(string))
+	} else {
+		fmt.Println(in.Data)
+	}
 }
 
 func topen_file(in TVariable) TVariable {
