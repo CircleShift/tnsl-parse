@@ -224,7 +224,7 @@ func getNodeRelative(s TArtifact) *tparse.Node {
 		}
 	}
 
-	errOut(fmt.Sprintf("Failed to find node %v", s))
+	errOut(fmt.Sprintf("Failed to find node (relative) %v", s))
 	return nil
 }
 
@@ -236,14 +236,14 @@ func getModDefRelative(s TArtifact) *TVariable {
 			continue
 		}
 
-		_, prs := tmpmod.Defs[s.Name]
+		val, prs := tmpmod.Defs[s.Name]
 
 		if prs {
-			return &(mod.Defs[a.Name])
+			return val
 		}
 	}
 
-	errOut(fmt.Sprintf("Failed to resolve mod def artifact %v", s))
+	errOut(fmt.Sprintf("Failed to resolve mod def artifact (relative) %v", s))
 	return nil
 }
 
@@ -434,7 +434,7 @@ func compositeToStruct(str TArtifact, cmp []interface{}) VarMap {
 	out := make(VarMap)
 
 	for i:=0;i<len(vars);i++ {
-		if equateType(vars[i].Type, tInt) || equateType(t, tCharp) || equateType(t, tString) {
+		if equateType(vars[i].Type, tInt) || equateType(vars[i].Type, tCharp) || equateType(vars[i].Type, tString) {
 			out[vars[i].Data.(string)] = &(TVariable{vars[i].Type, cmp[i]})
 		}
 		
@@ -447,11 +447,22 @@ func compositeToStruct(str TArtifact, cmp []interface{}) VarMap {
 //# Finding Artifacts #
 //#####################
 
-func resolveModArtifact(a TArtifact) *TVariable {
-	return nil
-}
-
 func resolveArtifactCall(a TArtifact, params []TVariable) TVariable {
+	tres := tnslResolve(a)
+	if tres == 0 {
+		if len(params) > 0 {
+			return tnslEval(params[0], a.Name)
+		} else {
+			errOut("Need at least one arg to call tnsl.io func")
+		}
+	} else if tres == 1 {
+		if len(params) > 1 {
+			return tnslFileEval(params[0], params[1], a.Name)
+		} else {
+			errOut("Not enough args recieved to call tnsl.io.File method.")
+		}
+	}
+
 	return null
 }
 
