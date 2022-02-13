@@ -165,14 +165,11 @@ func getModuleRelative(mod *TModule, a TArtifact) *TModule {
 	return mod
 }
 
-func getModuleInPath(m int) *TModule {
+func getModuleInPath(a TArtifact) *TModule {
 	mod := prog
-	
-	if m > len(cart.Path) {
-		m = len(cart.Path)
-	} else if m <= 0 {
-		return mod
-	}
+	m := len(cart.Path)
+
+	out := getModuleRelative(mod, a)
 
 	for i := 0; i < m; i++ {
 		for j := 0; j < len(mod.Sub); j++ {
@@ -180,13 +177,18 @@ func getModuleInPath(m int) *TModule {
 				mod = &(mod.Sub[j])
 				break
 			}
-			if j + 1 == len(mod.Sub) {
-				errOut(fmt.Sprintf("Failed to find module %d in path %v", m, cart))
-			}
+		}
+		tmp := getModuleRelative(mod, a)
+		if tmp != nil {
+			out = tmp
 		}
 	}
 
-	return mod
+	if out == nil {
+		errOut(fmt.Sprintf("Failed to find module %d in path %v", m, cart))
+	}
+
+	return out
 }
 
 // Find an artifact from a path and the root node
@@ -208,18 +210,16 @@ func getNode(a TArtifact) *tparse.Node {
 
 func getNodeRelative(s TArtifact) *tparse.Node {
 
-	for i := len(cart.Path); i >= 0; i-- {
-		tmpmod := getModuleRelative(getModuleInPath(i), s)
-		if tmpmod == nil {
-			continue
-		}
+	tmpmod := getModuleInPath(s)
+	if tmpmod == nil {
+		continue
+	}
 
-		for i := 0; i < len(tmpmod.Artifacts); i++ {
-			n := getNames(tmpmod.Artifacts[i])
-			for j := 0; j < len(n); j++ {
-				if n[j] == s.Name {
-					return &(tmpmod.Artifacts[i])
-				}
+	for i := 0; i < len(tmpmod.Artifacts); i++ {
+		n := getNames(tmpmod.Artifacts[i])
+		for j := 0; j < len(n); j++ {
+			if n[j] == s.Name {
+				return &(tmpmod.Artifacts[i])
 			}
 		}
 	}
@@ -230,17 +230,15 @@ func getNodeRelative(s TArtifact) *tparse.Node {
 
 func getModDefRelative(s TArtifact) *TVariable {
 
-	for i := len(cart.Path); i >= 0; i-- {
-		tmpmod := getModuleRelative(getModuleInPath(i), s)
-		if tmpmod == nil {
-			continue
-		}
+	tmpmod := getModuleInPath(s)
+	if tmpmod == nil {
+		continue
+	}
 
-		val, prs := tmpmod.Defs[s.Name]
+	val, prs := tmpmod.Defs[s.Name]
 
-		if prs {
-			return val
-		}
+	if prs {
+		return val
 	}
 
 	errOut(fmt.Sprintf("Failed to resolve mod def artifact (relative) %v", s))
