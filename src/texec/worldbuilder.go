@@ -51,7 +51,7 @@ func modDef(n tparse.Node, m *TModule) {
 	t := getType(n.Sub[0])
 	s, vs := modDefVars(n.Sub[1], t)
 	for i := 0; i < len(s); i++ {
-		m.Defs[s[i]] = vs[i]
+		m.Defs[s[i]] = &(vs[i])
 	}
 }
 
@@ -94,7 +94,7 @@ func modDefStruct(n tparse.Node, m *TModule) {
 		}
 	}
 
-	m.Defs[name] = TVariable{tStruct, tvlist}
+	m.Defs[name] = &(TVariable{tStruct, tvlist})
 }
 
 func modDefEnum(n tparse.Node, m *TModule) {
@@ -103,9 +103,9 @@ func modDefEnum(n tparse.Node, m *TModule) {
 	s, vs := modDefVars(n.Sub[2], t)
 	out := TVariable{tEnum, make(VarMap)}
 	for i := 0; i < len(s); i++ {
-		out.Data.(VarMap)[s[i]] = vs[i]
+		out.Data.(VarMap)[s[i]] = &(vs[i])
 	}
-	m.Defs[name] = out
+	m.Defs[name] = &(out)
 }
 
 // Parse a file and make an AST from it.

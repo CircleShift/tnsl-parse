@@ -114,6 +114,8 @@ func tnslFileEval(file, in TVariable, function string) TVariable {
 func tprint(in TVariable) {
 	if equateType(in.Type, tString) {
 		fmt.Print(in.Data.(string))
+	} else if equateType(in.Type, tCharp) {
+		fmt.Print(in.Data.(rune))
 	} else {
 		fmt.Print(in.Data)
 	}
@@ -122,6 +124,8 @@ func tprint(in TVariable) {
 func tprintln(in TVariable) {
 	if equateType(in.Type, tString) {
 		fmt.Println(in.Data.(string))
+	} else if equateType(in.Type, tCharp) {
+		fmt.Println(in.Data.(rune))
 	} else {
 		fmt.Println(in.Data)
 	}

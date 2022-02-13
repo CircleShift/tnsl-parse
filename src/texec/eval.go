@@ -53,18 +53,20 @@ var (
 // Error helper
 
 func errOut(msg string) {
-	fmt.Println("Error in eval:")
+	fmt.Println("==== BEGIN ERROR ====")
 	fmt.Println(msg)
 	fmt.Println(cart)
-	panic("EVAL ERROR")
+	fmt.Println("==== END ERROR ====")
+	panic(">>> PANIC FROM EVAL <<<")
 }
 
 func errOutCTX(msg string, ctx VarMap) {
-	fmt.Println("Error in eval:")
+	fmt.Println("==== BEGIN ERROR ====")
 	fmt.Println(msg)
 	fmt.Println(cart)
 	fmt.Println(ctx)
-	panic("EVAL ERROR")
+	fmt.Println("==== END ERROR ====")
+	panic(">>> PANIC FROM EVAL <<<")
 }
 
 // Names of artifacts, finding artifacts
@@ -226,7 +228,7 @@ func getNodeRelative(s TArtifact) *tparse.Node {
 	return nil
 }
 
-func getModDefRelative(s TArtifact) TVariable {
+func getModDefRelative(s TArtifact) *TVariable {
 
 	for i := len(cart.Path); i >= 0; i-- {
 		tmpmod := getModuleRelative(getModuleInPath(i), s)
@@ -234,19 +236,19 @@ func getModDefRelative(s TArtifact) TVariable {
 			continue
 		}
 
-		def, prs := tmpmod.Defs[s.Name]
+		_, prs := tmpmod.Defs[s.Name]
 
 		if prs {
-			return def
+			return &(mod.Defs[a.Name])
 		}
 	}
 
 	errOut(fmt.Sprintf("Failed to resolve mod def artifact %v", s))
-	return null
+	return nil
 }
 
 // Returns a mod definition, requires a resolved artifact
-func getModDef(a TArtifact) TVariable {
+func getModDef(a TArtifact) *TVariable {
 	mod := prog
 	
 	for i := 0; i < len(a.Path); i++ {
@@ -258,14 +260,14 @@ func getModDef(a TArtifact) TVariable {
 		}
 	}
 
-	def, prs := mod.Defs[a.Name]
+	v, prs := mod.Defs[a.Name]
 
 	if prs {
-		return def
+		return v
 	}
 
 	errOut(fmt.Sprintf("Failed to resolve mod def artifact %v", a))
-	return null
+	return nil
 }
 
 // Type related stuff
@@ -421,8 +423,10 @@ func getLiteral(v tparse.Node, t TType) interface{} {
 	return getLiteralComposite(v)
 }
 
-func compositeToStruct(str TVariable, cmp []interface{}) VarMap {
-	vars := str.Data.([]TVariable)
+func compositeToStruct(str TArtifact, cmp []interface{}) VarMap {
+	sv := getModDefRelative(str)
+
+	vars := sv.Data.([]TVariable)
 	if len(vars) != len(cmp) {
 		return nil
 	}
@@ -430,7 +434,10 @@ func compositeToStruct(str TVariable, cmp []interface{}) VarMap {
 	out := make(VarMap)
 
 	for i:=0;i<len(vars);i++ {
-		out[vars[i].Data.(string)] = TVariable{vars[i].Type, cmp[i]}
+		if equateType(vars[i].Type, tInt) || equateType(t, tCharp) || equateType(t, tString) {
+			out[vars[i].Data.(string)] = &(TVariable{vars[i].Type, cmp[i]})
+		}
+		
 	}
 
 	return out
@@ -449,6 +456,16 @@ func resolveArtifactCall(a TArtifact, params []TVariable) TVariable {
 }
 
 func resolveArtifact(a TArtifact, ctx *VarMap) *TVariable {
+	if len(a.Path) == 0 {
+		val, prs := (*ctx)[a.Name]
+		if !prs {
+			errOutCTX(fmt.Sprintf("Could not resolve %s in the current context.", a.Name), *ctx)
+		}
+		return val
+	} else {
+
+	}
+
 	return nil
 }
 
@@ -460,8 +477,16 @@ func resolveArtifact(a TArtifact, ctx *VarMap) *TVariable {
 
 // Parse a value node
 func evalValue(v tparse.Node, ctx *VarMap) TVariable {
-	if v.Data.Data == "=" {
-
+	switch v.Data.Data {
+	case "=":
+	case "+":
+	case "-":
+	case "*":
+	case "/":
+	case "&&":
+	case "||":
+	case "==":
+	case ".":
 	}
 	return null
 }

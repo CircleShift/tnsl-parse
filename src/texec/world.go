@@ -37,7 +37,7 @@ type TVariable struct {
 	Data interface{}
 }
 
-type VarMap map[string]TVariable
+type VarMap map[string]*TVariable
 
 // TModule represents a collection of files and sub-modules in a program
 type TModule struct {
