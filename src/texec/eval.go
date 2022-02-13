@@ -212,7 +212,7 @@ func getNodeRelative(s TArtifact) *tparse.Node {
 
 	tmpmod := getModuleInPath(s)
 	if tmpmod == nil {
-		continue
+		errOut(fmt.Sprintf("Failed to get module to resolve node: %v", s))
 	}
 
 	for i := 0; i < len(tmpmod.Artifacts); i++ {
@@ -232,7 +232,7 @@ func getModDefRelative(s TArtifact) *TVariable {
 
 	tmpmod := getModuleInPath(s)
 	if tmpmod == nil {
-		continue
+		errOut(fmt.Sprintf("Failed to get module to resolve artifact: %v", s))
 	}
 
 	val, prs := tmpmod.Defs[s.Name]
