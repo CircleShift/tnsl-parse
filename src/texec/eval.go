@@ -484,18 +484,52 @@ func resolveArtifact(a TArtifact, ctx *VarMap) *TVariable {
 
 // Value statement parsing
 
+func evalDotChain(v tparse.Node, ctx *VarMap) TVariable {
+	return null
+}
+
+// Try to convert a value into a specific type
+func convValue(val TVariable, t TType) TVariable {
+	return null
+}
+
 // Parse a value node
 func evalValue(v tparse.Node, ctx *VarMap) TVariable {
 	switch v.Data.Data {
 	case "=":
+		dtyp := (*(*ctx)[v.Sub[0].Data.Data]).Type
+		dval := evalValue(v.Sub[1], ctx)
+		(*ctx)[v.Sub[0].Data.Data].Data = (convValue(dval, dtyp)).Data
 	case "+":
+		a := evalValue(v.Sub[0], ctx)
+		b := evalValue(v.Sub[1], ctx)
+		return TVariable{tInt, a.Data.(int) + b.Data.(int)}
 	case "-":
+		a := evalValue(v.Sub[0], ctx)
+		b := evalValue(v.Sub[1], ctx)
+		return TVariable{tInt, a.Data.(int) - b.Data.(int)}
 	case "*":
+		a := evalValue(v.Sub[0], ctx)
+		b := evalValue(v.Sub[1], ctx)
+		return TVariable{tInt, a.Data.(int) * b.Data.(int)}
 	case "/":
+		a := evalValue(v.Sub[0], ctx)
+		b := evalValue(v.Sub[1], ctx)
+		return TVariable{tInt, a.Data.(int) / b.Data.(int)}
 	case "&&":
+		a := evalValue(v.Sub[0], ctx)
+		b := evalValue(v.Sub[1], ctx)
+		return TVariable{tBool, a.Data.(bool) && b.Data.(bool)}
 	case "||":
+		a := evalValue(v.Sub[0], ctx)
+		b := evalValue(v.Sub[1], ctx)
+		return TVariable{tInt, a.Data.(bool) || b.Data.(bool)}
 	case "==":
+		a := evalValue(v.Sub[0], ctx)
+		b := evalValue(v.Sub[1], ctx)
+		return TVariable{tBool, a.Data.(int) == b.Data.(int)}
 	case ".":
+		return evalDotChain(v, ctx)
 	}
 	return null
 }
