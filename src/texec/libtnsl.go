@@ -51,6 +51,7 @@ var (
 	tFloat = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name:"float"}, Post: ""}
 	tCharp = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name:"charp"}, Post: ""}
 	tNull = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name: "null"}, Post: ""}
+	tBool = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name: "bool"}, Post: ""}
 
 	// used only in module definintion
 	tEnum = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name: "enum"}, Post: ""}

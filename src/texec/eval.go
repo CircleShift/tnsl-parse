@@ -397,7 +397,7 @@ func getLiteralComposite(v tparse.Node) []interface{} {
 		if v.Sub[i].Data.Data[0] == '"' {
 			out = append(out, getStringLiteral(v.Sub[i]))
 		} else if v.Sub[i].Data.Data[0] == '\'' {
-			out = append(out, getStringLiteral(v.Sub[i]))
+			out = append(out, getCharLiteral(v.Sub[i]))
 		} else if v.Sub[i].Data.Data == "comp" {
 			out = append(out, getLiteralComposite(v.Sub[i]))
 		} else {
@@ -484,52 +484,137 @@ func resolveArtifact(a TArtifact, ctx *VarMap) *TVariable {
 
 // Value statement parsing
 
-func evalDotChain(v tparse.Node, ctx *VarMap) TVariable {
+func isStruct(t TType, skp int) bool {
+	ch := false
+
+	ch = ch || isPointer(t, skp)
+	ch = ch || isArray(t, skp)
+	ch = ch || equateTypePS(t, tFile, skp)
+	ch = ch || equateTypePS(t, tInt, skp)
+	ch = ch || equateTypePS(t, tByte, skp)
+	ch = ch || equateTypePS(t, tFloat, skp)
+	ch = ch || equateTypePS(t, tCharp, skp)
+	ch = ch || equateTypePS(t, tBool, skp)
+	ch = ch || equateTypePS(t, tNull, skp)
+
+	return !ch
+}
+
+func isPointer(t TType, skp int) bool {
+	for ;skp < len(t.Pre) && t.Pre[skp] == "const"; skp++ {}
+
+	if len(t.Pre) >= skp {
+		return false
+	}
+
+	return t.Pre[skp] == "~"
+}
+
+func isArray(t TType, skp int) bool {
+	for ;skp < len(t.Pre) && t.Pre[skp] == "const"; skp++ {}
+
+	if len(t.Pre) >= skp {
+		return false
+	}
+
+	return t.Pre[skp] == "{}"
+}
+
+func evalDotChain(v tparse.Node, ctx *VarMap, wk *TVariable) TVariable {
+	var wrvm *VarMap
+	wrvm = ctx
+
+	if isStruct((*wk).Type, 0) {
+		wrvm = (*wk).Data.(*VarMap)
+	}
+
+	// Check if current name relates to a variable in context or working var
+	dat, prs := (*wrvm)[v.Sub[0].Data.Data]
+	if prs {
+		return evalDotChain(v.Sub[1], ctx, dat)
+	}
+
+	//
+
+
 	return null
 }
 
 // Try to convert a value into a specific type
-func convValue(val TVariable, t TType) TVariable {
+func convValue(val *TVariable, t TType) TVariable {
+	if equateType(val.Type, t) {
+		return *val
+	}
+
+	errOut(fmt.Sprintf("Failed to convert value %v to type %v.", val, t))
 	return null
+}
+
+func evalSet(v tparse.Node, ctx *VarMap, val TVariable) {
+	
 }
 
 // Parse a value node
 func evalValue(v tparse.Node, ctx *VarMap) TVariable {
-	switch v.Data.Data {
-	case "=":
-		dtyp := (*(*ctx)[v.Sub[0].Data.Data]).Type
-		dval := evalValue(v.Sub[1], ctx)
-		(*ctx)[v.Sub[0].Data.Data].Data = (convValue(dval, dtyp)).Data
-	case "+":
-		a := evalValue(v.Sub[0], ctx)
-		b := evalValue(v.Sub[1], ctx)
-		return TVariable{tInt, a.Data.(int) + b.Data.(int)}
-	case "-":
-		a := evalValue(v.Sub[0], ctx)
-		b := evalValue(v.Sub[1], ctx)
-		return TVariable{tInt, a.Data.(int) - b.Data.(int)}
-	case "*":
-		a := evalValue(v.Sub[0], ctx)
-		b := evalValue(v.Sub[1], ctx)
-		return TVariable{tInt, a.Data.(int) * b.Data.(int)}
-	case "/":
-		a := evalValue(v.Sub[0], ctx)
-		b := evalValue(v.Sub[1], ctx)
-		return TVariable{tInt, a.Data.(int) / b.Data.(int)}
-	case "&&":
-		a := evalValue(v.Sub[0], ctx)
-		b := evalValue(v.Sub[1], ctx)
-		return TVariable{tBool, a.Data.(bool) && b.Data.(bool)}
-	case "||":
-		a := evalValue(v.Sub[0], ctx)
-		b := evalValue(v.Sub[1], ctx)
-		return TVariable{tInt, a.Data.(bool) || b.Data.(bool)}
-	case "==":
-		a := evalValue(v.Sub[0], ctx)
-		b := evalValue(v.Sub[1], ctx)
-		return TVariable{tBool, a.Data.(int) == b.Data.(int)}
-	case ".":
-		return evalDotChain(v, ctx)
+	if v.Data.Type == tparse.AUGMENT {
+		switch v.Data.Data {
+		case "=":
+			rval := evalValue(v.Sub[1], ctx)
+			evalSet(v.Sub[0], ctx, rval)
+			return rval
+		case "+":
+			a := evalValue(v.Sub[0], ctx)
+			b := evalValue(v.Sub[1], ctx)
+			return TVariable{tInt, a.Data.(int) + b.Data.(int)}
+		case "-":
+			a := evalValue(v.Sub[0], ctx)
+			b := evalValue(v.Sub[1], ctx)
+			return TVariable{tInt, a.Data.(int) - b.Data.(int)}
+		case "*":
+			a := evalValue(v.Sub[0], ctx)
+			b := evalValue(v.Sub[1], ctx)
+			return TVariable{tInt, a.Data.(int) * b.Data.(int)}
+		case "/":
+			a := evalValue(v.Sub[0], ctx)
+			b := evalValue(v.Sub[1], ctx)
+			return TVariable{tInt, a.Data.(int) / b.Data.(int)}
+		case "%":
+			a := evalValue(v.Sub[0], ctx)
+			b := evalValue(v.Sub[1], ctx)
+			return TVariable{tInt, a.Data.(int) % b.Data.(int)}
+		case "&&":
+			a := evalValue(v.Sub[0], ctx)
+			b := evalValue(v.Sub[1], ctx)
+			return TVariable{tBool, a.Data.(bool) && b.Data.(bool)}
+		case "||":
+			a := evalValue(v.Sub[0], ctx)
+			b := evalValue(v.Sub[1], ctx)
+			return TVariable{tInt, a.Data.(bool) || b.Data.(bool)}
+		case "==":
+			a := evalValue(v.Sub[0], ctx)
+			b := evalValue(v.Sub[1], ctx)
+			if equateType(a.Type, b.Type) {
+				return TVariable{tBool, a.Data == b.Data}
+			}
+			return TVariable{tBool, a.Data.(int) == b.Data.(int)}
+		case "!":
+			a := evalValue(v.Sub[0], ctx)
+			return TVariable{tBool, !(a.Data.(bool))}
+		case ".":
+			return evalDotChain(v, ctx, &null)
+		}
+	} else if v.Data.Type == tparse.LITERAL {
+		if v.Data.Data[0] == '"' {
+			return TVariable{tString, getStringLiteral(v)}
+		} else if v.Data.Data[0] == '\'' {
+			return TVariable{tCharp, getCharLiteral(v)}
+		} else if v.Data.Data == "comp" {
+			return TVariable{tStruct, getLiteralComposite(v)}
+		} else {
+			return TVariable{tInt, getIntLiteral(v)}
+		}
+	} else if v.Data.Type == tparse.DEFWORD {
+
 	}
 	return null
 }
