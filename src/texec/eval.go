@@ -131,24 +131,8 @@ func getNames(root tparse.Node) []string {
 	return []string{}
 }
 
-func getModule(a TArtifact) *TModule {
-	mod := prog
-	
-	for i := 0; i < len(a.Path); i++ {
-		for j := 0; j < len(mod.Sub); j++ {
-			if mod.Sub[j].Name == a.Path[i] {
-				mod = &(mod.Sub[j])
-				break
-			}
-			if j + 1 == len(mod.Sub) {
-				errOut(fmt.Sprintf("Failed to find module %v", a))
-			}
-		}
-	}
-
-	return mod
-}
-
+// Attempt to get a module from a path starting at the given module
+// Returns nil if the module was not found.
 func getModuleRelative(mod *TModule, a TArtifact) *TModule {
 	for i := 0; i < len(a.Path); i++ {
 		for j := 0; j < len(mod.Sub); j++ {
@@ -165,83 +149,92 @@ func getModuleRelative(mod *TModule, a TArtifact) *TModule {
 	return mod
 }
 
-func getModuleInPath(a TArtifact) *TModule {
-	mod := prog
-	m := len(cart.Path)
-
-	out := getModuleRelative(mod, a)
-
-	for i := 0; i < m; i++ {
-		for j := 0; j < len(mod.Sub); j++ {
-			if mod.Sub[j].Name == cart.Path[i] {
-				mod = &(mod.Sub[j])
-				break
-			}
-		}
-		tmp := getModuleRelative(mod, a)
-		if tmp != nil {
-			out = tmp
-		}
-	}
-
-	if out == nil {
-		errOut(fmt.Sprintf("Failed to find module %d in path %v", m, cart))
-	}
-
-	return out
+// Attempt to get a module from the root module using a specified path
+// Returns nil if the module was not found.
+func getModule(a TArtifact) *TModule {
+	return getModuleRelative(prog, a)
 }
 
-// Find an artifact from a path and the root node
-func getNode(a TArtifact) *tparse.Node {
-	mod := getModule(a)
+// Get a module ion the current path.
+// Returns nil if the index is out of range.
+func getModuleInPath(p int) *TModule {
+	m := len(cart.Path)
+
+	if p < 0 || p > m {
+		return nil
+	}
+
+	return getModule( TArtifact{ cart.Path[:p] , "" } )
+}
+
+// Find an artifact from a name and the module to search
+// Returns nil if the node is not found in the module
+func getNode(mod *TModule, n string) *tparse.Node {
 
 	for i := 0; i < len(mod.Artifacts); i++ {
-		n := getNames(mod.Artifacts[i])
-		for j := 0; j < len(n); j++ {
-			if n[j] == a.Name {
+		chk := getNames(mod.Artifacts[i])
+		for j := 0; j < len(chk); j++ {
+			if chk[j] == n {
 				return &(mod.Artifacts[i])
 			}
 		}
 	}
 
-	errOut(fmt.Sprintf("Failed to find node %v", a))
 	return nil
 }
 
-func getNodeRelative(s TArtifact) *tparse.Node {
+// This is a horrible way to search through nodes with this structure.  O(n^3).
+// This could (and should) be made better by using a dictionary like structure for sub-modules and artifacts.
+// By sacrificing this type of tree it could probably get down to O(n^2) or even O(n) if you were good enough.
+// Most probably, the following is not how it will be implemented in the final version of the compiler.
+// If this wasn't a bootstrap/hoby project, I would probably fire myself for the following code.
 
-	tmpmod := getModuleInPath(s)
-	if tmpmod == nil {
-		errOut(fmt.Sprintf("Failed to get module to resolve node: %v", s))
-	}
+// Yes, I am aware that the following code is bad.
+// No, I don't care.
 
-	for i := 0; i < len(tmpmod.Artifacts); i++ {
-		n := getNames(tmpmod.Artifacts[i])
-		for j := 0; j < len(n); j++ {
-			if n[j] == s.Name {
-				return &(tmpmod.Artifacts[i])
-			}
+func searchNode(s TArtifact) *tparse.Node {
+
+	// i-- because we are doing a reverse lookup
+	for i := len(cart.Path); i >= 0; i-- { // O(n)
+		tst := getModuleInPath(i) // O(n^2) (O(n^3) total here)
+		
+		tst = getModuleRelative(tst, s) // O(n^2) (O(n^3) total here)
+		
+		if tst == nil {
+			continue
 		}
-	}
 
-	errOut(fmt.Sprintf("Failed to find node (relative) %v", s))
+		ret := getNode(tst, s.Name) // O(n^2) (O(n^3) total here)
+
+		if ret != nil {
+			return ret
+		}
+	} // Block total complexity 3*O(n^2) * O(n) = 3*O(n^3)
+
 	return nil
 }
+
+// End block of complexity horror
 
 func getModDefRelative(s TArtifact) *TVariable {
 
-	tmpmod := getModuleInPath(s)
-	if tmpmod == nil {
-		errOut(fmt.Sprintf("Failed to get module to resolve artifact: %v", s))
-	}
+	// i-- because we are doing a reverse lookup
+	for i := len(cart.Path); i >= 0; i-- { // O(n)
+		tst := getModuleInPath(i) // O(n^2) (O(n^3) total here)
+		
+		tst = getModuleRelative(tst, s) // O(n^2) (O(n^3) total here)
+		
+		if tst == nil {
+			continue
+		}
 
-	val, prs := tmpmod.Defs[s.Name]
+		ret, prs := (*tst).Defs[s.Name] // O(n^2) (O(n^3) total here)
 
-	if prs {
-		return val
-	}
+		if prs {
+			return ret
+		}
+	} // Block total complexity 3*O(n^2) * O(n) = 3*O(n^3)
 
-	errOut(fmt.Sprintf("Failed to resolve mod def artifact (relative) %v", s))
 	return nil
 }
 
@@ -408,6 +401,10 @@ func getLiteralComposite(v tparse.Node) []interface{} {
 	return out
 }
 
+func getBoolLiteral(v tparse.Node) bool {
+	return v.Data.Data == "true"
+}
+
 func getLiteral(v tparse.Node, t TType) interface{} {
 
 	if equateType(t, tInt) {
@@ -416,9 +413,27 @@ func getLiteral(v tparse.Node, t TType) interface{} {
 		return getCharLiteral(v)
 	} else if equateType(t, tString) {
 		return getStringLiteral(v)
+	} else if equateType(t, tBool) {
+		getBoolLiteral(v)
 	}
 
 	return getLiteralComposite(v)
+}
+
+func getLiteralType(v tparse.Node) TType {
+	if v.Data.Data[0] == '"' {
+		return tString
+	} else if v.Data.Data[0] == '\'' {
+		return tCharp
+	} else if v.Data.Data == "comp" {
+		return tStruct
+	} else if v.Data.Data == "true" || v.Data.Data == "false" {
+		return tBool
+	} else {
+		return tInt
+	}
+
+	return tNull
 }
 
 func compositeToStruct(str TArtifact, cmp []interface{}) VarMap {
@@ -471,8 +486,6 @@ func resolveArtifact(a TArtifact, ctx *VarMap) *TVariable {
 			errOutCTX(fmt.Sprintf("Could not resolve %s in the current context.", a.Name), *ctx)
 		}
 		return val
-	} else {
-
 	}
 
 	return nil
@@ -520,7 +533,7 @@ func isArray(t TType, skp int) bool {
 	return t.Pre[skp] == "{}"
 }
 
-func evalDotChain(v tparse.Node, ctx *VarMap, wk *TVariable) TVariable {
+func evalDotChain(v tparse.Node, ctx *VarMap, wk *TVariable) *TVariable {
 	var wrvm *VarMap
 	wrvm = ctx
 
@@ -537,7 +550,7 @@ func evalDotChain(v tparse.Node, ctx *VarMap, wk *TVariable) TVariable {
 	//
 
 
-	return null
+	return &null
 }
 
 // Try to convert a value into a specific type
@@ -556,7 +569,19 @@ func evalSet(v tparse.Node, ctx *VarMap, val TVariable) {
 
 // Parse a value node
 func evalValue(v tparse.Node, ctx *VarMap) TVariable {
-	if v.Data.Type == tparse.AUGMENT {
+	if v.Data.Type == tparse.LITERAL {
+		if v.Data.Data[0] == '"' {
+			return TVariable{tString, getStringLiteral(v)}
+		} else if v.Data.Data[0] == '\'' {
+			return TVariable{tCharp, getCharLiteral(v)}
+		} else if v.Data.Data == "comp" {
+			return TVariable{tStruct, getLiteralComposite(v)}
+		} else {
+			return TVariable{tInt, getIntLiteral(v)}
+		}
+	} else if v.Data.Type == tparse.DEFWORD {
+		
+	} else if v.Data.Type == tparse.AUGMENT {
 		switch v.Data.Data {
 		case "=":
 			rval := evalValue(v.Sub[1], ctx)
@@ -601,21 +626,9 @@ func evalValue(v tparse.Node, ctx *VarMap) TVariable {
 			a := evalValue(v.Sub[0], ctx)
 			return TVariable{tBool, !(a.Data.(bool))}
 		case ".":
-			return evalDotChain(v, ctx, &null)
+			return *evalDotChain(v, ctx, &null)
 		}
-	} else if v.Data.Type == tparse.LITERAL {
-		if v.Data.Data[0] == '"' {
-			return TVariable{tString, getStringLiteral(v)}
-		} else if v.Data.Data[0] == '\'' {
-			return TVariable{tCharp, getCharLiteral(v)}
-		} else if v.Data.Data == "comp" {
-			return TVariable{tStruct, getLiteralComposite(v)}
-		} else {
-			return TVariable{tInt, getIntLiteral(v)}
-		}
-	} else if v.Data.Type == tparse.DEFWORD {
-
-	}
+	} 
 	return null
 }
 
@@ -670,7 +683,7 @@ func EvalTNSL(root *TModule, args string) TVariable {
 			"" },
 		sarg }
 
-	mainNod := getNode(cart)
+	mainNod := getNode(prog, "main")
 	
 	fmt.Println(mainNod)
 
