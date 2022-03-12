@@ -65,7 +65,7 @@ func errOutCTX(msg string, ctx VarMap) {
 	fmt.Println(msg)
 	fmt.Println(cart)
 	fmt.Println(ctx)
-	fmt.Println("==== END ERROR ====")
+	fmt.Println("====  END  ERROR ====")
 	panic(">>> PANIC FROM EVAL <<<")
 }
 
@@ -134,6 +134,10 @@ func getNames(root tparse.Node) []string {
 // Attempt to get a module from a path starting at the given module
 // Returns nil if the module was not found.
 func getModuleRelative(mod *TModule, a TArtifact) *TModule {
+	if mod == nil {
+		return nil
+	}
+
 	for i := 0; i < len(a.Path); i++ {
 		for j := 0; j < len(mod.Sub); j++ {
 			if mod.Sub[j].Name == a.Path[i] {
@@ -183,6 +187,14 @@ func getNode(mod *TModule, n string) *tparse.Node {
 	return nil
 }
 
+func getDef(mod *TModule, n string) *TVariable {
+	ret, prs := (*mod).Defs[n]
+	if prs {
+		return ret
+	}
+	return nil
+}
+
 // This is a horrible way to search through nodes with this structure.  O(n^3).
 // This could (and should) be made better by using a dictionary like structure for sub-modules and artifacts.
 // By sacrificing this type of tree it could probably get down to O(n^2) or even O(n) if you were good enough.
@@ -197,9 +209,8 @@ func searchNode(s TArtifact) *tparse.Node {
 	// i-- because we are doing a reverse lookup
 	for i := len(cart.Path); i >= 0; i-- { // O(n)
 		tst := getModuleInPath(i) // O(n^2) (O(n^3) total here)
-		
 		tst = getModuleRelative(tst, s) // O(n^2) (O(n^3) total here)
-		
+
 		if tst == nil {
 			continue
 		}
@@ -214,97 +225,68 @@ func searchNode(s TArtifact) *tparse.Node {
 	return nil
 }
 
-// End block of complexity horror
+func searchDef(s TArtifact) *TVariable {
 
-func getModDefRelative(s TArtifact) *TVariable {
+	// i-- because of reverse lookup
+	for i := len(cart.Path); i >= 0; i-- {
+		tst := getModuleInPath(i)
+		tst = getModuleRelative(tst, s)
 
-	// i-- because we are doing a reverse lookup
-	for i := len(cart.Path); i >= 0; i-- { // O(n)
-		tst := getModuleInPath(i) // O(n^2) (O(n^3) total here)
-		
-		tst = getModuleRelative(tst, s) // O(n^2) (O(n^3) total here)
-		
 		if tst == nil {
 			continue
 		}
 
-		ret, prs := (*tst).Defs[s.Name] // O(n^2) (O(n^3) total here)
+		ret := getDef(tst, s.Name)
 
-		if prs {
+		if ret != nil {
 			return ret
 		}
-	} // Block total complexity 3*O(n^2) * O(n) = 3*O(n^3)
-
+	}
 	return nil
 }
 
-// Returns a mod definition, requires a resolved artifact
-func getModDef(a TArtifact) *TVariable {
-	mod := prog
-	
-	for i := 0; i < len(a.Path); i++ {
-		for j := 0; j < len(mod.Sub); j++ {
-			if mod.Sub[j].Name == a.Path[i] {
-				mod = &(mod.Sub[j])
-				break
-			}
-		}
-	}
-
-	v, prs := mod.Defs[a.Name]
-
-	if prs {
-		return v
-	}
-
-	errOut(fmt.Sprintf("Failed to resolve mod def artifact %v", a))
-	return nil
-}
+// End block of complexity horror
 
 // Type related stuff
 
 // Checking type equality
-// Assumes a is an unknown type and b is a known good type.
-func equateTypePS(a, b TType, preskip int) bool {
-	cc := 0
-	for i := 0; i < len(a.Pre); i++ {
-		if a.Pre[i] == "const" {
-			cc++
-		}
-	}
-
-	if len(a.T.Path) != len(b.T.Path) || len(a.Pre) - preskip - cc != len(b.Pre) {
+// Assumes a is an unknown and b is also an unknown.
+func equateTypePS(a, b TType, psa, psb int) bool {
+	if len(a.T.Path) != len(b.T.Path) || len(a.Pre) - psa != len(b.Pre) - psb {
 		return false
 	}
 
-	for i := preskip; i < len(a.Pre); i++ {
-		if a.Pre[i] == "const" {
-			preskip++
-			continue
-		} else if a.Pre[i] != b.Pre[i - preskip] {
+	for i := 0; i < len(a.Pre) - psa; i++ {
+		if a.Pre[psa + i] != b.Pre[psb + i] {
 			return false
 		}
 	}
 
-	for i := 0; i < len(a.T.Path); i++ {
+	for i := 0; i < len(a.T.Path);i++ {
 		if a.T.Path[i] != b.T.Path[i] {
 			return false
 		}
 	}
 
-	if a.T.Name != b.T.Name {
+	if a.T.Name != b.T.Name || a.Post != b.Post {
 		return false
 	}
 
-	if (a.Post == "`" && b.Post != "`") || (b.Post == "`" && a.Post != "`") {
-		return false
-	}
+	return true
+}
 
-	return true;
+func equateTypePSB(a, b TType, ps int) bool {
+	return equateTypePS(a, b, ps, ps)
+}
+
+// Checking type equality
+// Assumes a is an unknown type and b is a known good type.
+func equateTypePSO(a, b TType, ps int) bool {
+	return equateTypePS(a, b, ps, 0)
 }
 
 func equateType(a, b TType) bool {
-	return equateTypePS(a, b, 0)
+	return equateTypePS(a, b, 0, 0)
 }
 
 // Generate a TType from a 'type' node
@@ -436,24 +418,61 @@ func getLiteralType(v tparse.Node) TType {
 	return tNull
 }
 
-func compositeToStruct(str TArtifact, cmp []interface{}) VarMap {
-	sv := getModDefRelative(str)
+// Convert Value to Struct from Array (cvsa)
+// USE ONLY IN THE CASE OF tStruct!
+func cvsa(str TType, skip int, dat []interface{}) VarMap {
+	sv := searchDef(str)
 
 	vars := sv.Data.([]TVariable)
 	if len(vars) != len(cmp) {
 		return nil
 	}
-	
+
 	out := make(VarMap)
 
 	for i:=0;i<len(vars);i++ {
-		if equateType(vars[i].Type, tInt) || equateType(vars[i].Type, tCharp) || equateType(vars[i].Type, tString) {
-			out[vars[i].Data.(string)] = &(TVariable{vars[i].Type, cmp[i]})
+		if isStruct(vars[i].Type) {
+		} else if isArray(vars) {
 		}
-		
 	}
 
 	return out
+}
+
+// Copy Struct To Struct (csts)
+func csts(str TType, skp int, dat VarMap) VarMap {
+}
+
+// Copy Array To Array (cata)
+func cata(str TType, skp int, dat []interface{}) {
+}
+
+func convertValPS(from, to TType, sk int, dat interface{}) interface{} {
+	if isStruct(to, sk) {
+		if equateTypePS(from, tStruct, sk)  {
+			return cvsa(to, sk, )
+		}
+	} else if isArray(to, sk) {
+		if equateTypePS(from, tStruct, sk) || isArray(from, sk) {
+			out := []interface{}
+			for i := 0; i < len(dat.([]interface{});i++ {
+				out = append(out, convertValPS(from, to, sk + 1, dat.([]interface{})[i]))
+			}
+		}
+	} else if equateTypePS(from, tInt, sk) {
+		if equateTypePS(to, tInt, sk) {
+			return dat.(int)
+		} else if equateTypePS(to, tCharp, sk) {
+			return dat.()
+		}
+	}
+
+	errOut(fmt.Sprintf("Unable to convert between two types.\nFR: %v\nTO: %v\nSK: %d\nDT: %v", from, to, sk, dat))
+	return nil
+}
+
+func convertVal(from, to TType, dat interface{}) interface{} {
+	return convertValPS(from, to, 0, dat)
 }
 
 //#####################
@@ -553,18 +572,8 @@ func evalDotChain(v tparse.Node, ctx *VarMap, wk *TVariable) *TVariable {
 	return &null
 }
 
-// Try to convert a value into a specific type
-func convValue(val *TVariable, t TType) TVariable {
-	if equateType(val.Type, t) {
-		return *val
-	}
-
-	errOut(fmt.Sprintf("Failed to convert value %v to type %v.", val, t))
-	return null
-}
-
 func evalSet(v tparse.Node, ctx *VarMap, val TVariable) {
-	
+
 }
 
 // Parse a value node
@@ -580,7 +589,7 @@ func evalValue(v tparse.Node, ctx *VarMap) TVariable {
 			return TVariable{tInt, getIntLiteral(v)}
 		}
 	} else if v.Data.Type == tparse.DEFWORD {
-		
+
 	} else if v.Data.Type == tparse.AUGMENT {
 		switch v.Data.Data {
 		case "=":
@@ -628,18 +637,18 @@ func evalValue(v tparse.Node, ctx *VarMap) TVariable {
 		case ".":
 			return *evalDotChain(v, ctx, &null)
 		}
-	} 
+	}
 	return null
 }
 
 // Generate a value for a definition
 func evalDefVal(v tparse.Node, ctx *VarMap) {
-	
+
 }
 
 // Eval a definition
 func evalDef(v tparse.Node, ctx *VarMap) {
-	
+
 }
 
 // Eval a control flow
@@ -675,7 +684,7 @@ func EvalTNSL(root *TModule, args string) TVariable {
 	cart = TArtifact { []string{}, "main" }
 
 	sarg := strings.Split(args, " ")
-	
+
 	targ := TVariable {
 		TType {
 			[]string{"{}", "{}"},
@@ -684,7 +693,7 @@ func EvalTNSL(root *TModule, args string) TVariable {
 		sarg }
 
 	mainNod := getNode(prog, "main")
-	
+
 	fmt.Println(mainNod)
 
 	return evalBlock(*mainNod, []TVariable{targ})
