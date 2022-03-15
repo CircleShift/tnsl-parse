@@ -448,14 +448,16 @@ func cata(str TType, skp int, dat []interface{}) {
 }
 
 func convertValPS(from, to TType, sk int, dat interface{}) interface{} {
-	if isStruct(to, sk) {
-		if equateTypePS(from, tStruct, sk)  {
-			return cvsa(to, sk, )
+	if equateTypePS(from, tStruct, sk) {
+		if isStruct(to, sk) {
+			return cvsa(to, sk)
+		} else if isArray(to, sk) {
+
 		}
-	} else if isArray(to, sk) {
-		if equateTypePS(from, tStruct, sk) || isArray(from, sk) {
+	} else if isArray(from, sk) {
+		if isArray(to, sk) {
 			out := []interface{}
-			for i := 0; i < len(dat.([]interface{});i++ {
+			for i := 0; i < len(dat.([]interface{}));i++ {
 				out = append(out, convertValPS(from, to, sk + 1, dat.([]interface{})[i]))
 			}
 		}
@@ -463,7 +465,7 @@ func convertValPS(from, to TType, sk int, dat interface{}) interface{} {
 		if equateTypePS(to, tInt, sk) {
 			return dat.(int)
 		} else if equateTypePS(to, tCharp, sk) {
-			return dat.()
+			return dat.(byte)
 		}
 	}
 

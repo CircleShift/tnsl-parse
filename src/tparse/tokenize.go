@@ -235,6 +235,8 @@ func TokenizeFile(path string) []Token {
 		if err != nil {
 			if err != io.EOF {
 				out = append(out, Token{Type: -1})
+			} else {
+				out = append(out, Token{Type: checkToken(b.String(), pre), Data: b.String(), Line: ln, Char: last})
 			}
 			break
 		}
