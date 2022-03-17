@@ -333,6 +333,10 @@ func getType(t tparse.Node) TType {
 	return out
 }
 
+func stripType(t TType, s int) TType {
+	return TType{t.Pre[s:], t.T, t.Post}
+}
+
 // Value generation
 
 func getStringLiteral(v tparse.Node) []byte {
@@ -420,8 +424,8 @@ func getLiteralType(v tparse.Node) TType {
 
 // Convert Value to Struct from Array (cvsa)
 // USE ONLY IN THE CASE OF tStruct!
-func cvsa(str TType, skip int, dat []interface{}) VarMap {
-	sv := searchDef(str)
+func cvsa(sct TType, dat []interface{}) VarMap {
+	sv := searchDef(sct.T)
 
 	vars := sv.Data.([]TVariable)
 	if len(vars) != len(cmp) {
@@ -473,8 +477,8 @@ func convertValPS(from, to TType, sk int, dat interface{}) interface{} {
 	return nil
 }
 
-func convertVal(from, to TType, dat interface{}) interface{} {
-	return convertValPS(from, to, 0, dat)
+func convertVal(dat TVariable, to TType) interface{} {
+	return convertValPS(dat.Type, to, 0, dat.Data)
 }
 
 //#####################
@@ -574,72 +578,74 @@ func evalDotChain(v tparse.Node, ctx *VarMap, wk *TVariable) *TVariable {
 	return &null
 }
 
-func evalSet(v tparse.Node, ctx *VarMap, val TVariable) {
-
-}
-
 // Parse a value node
-func evalValue(v tparse.Node, ctx *VarMap) TVariable {
-	if v.Data.Type == tparse.LITERAL {
-		if v.Data.Data[0] == '"' {
-			return TVariable{tString, getStringLiteral(v)}
-		} else if v.Data.Data[0] == '\'' {
-			return TVariable{tCharp, getCharLiteral(v)}
-		} else if v.Data.Data == "comp" {
-			return TVariable{tStruct, getLiteralComposite(v)}
-		} else {
-			return TVariable{tInt, getIntLiteral(v)}
-		}
-	} else if v.Data.Type == tparse.DEFWORD {
+func evalValue(v tparse.Node, ctx *VarMap) *TVariable {
+	switch v.Data.Type {
+	case tparse.LITERAL:
+		t := getLiteralType(v)
+		return &TVariable{t, getLiteral(v, t)}
+	case tparse.DEFWORD:
 
-	} else if v.Data.Type == tparse.AUGMENT {
-		switch v.Data.Data {
-		case "=":
-			rval := evalValue(v.Sub[1], ctx)
-			evalSet(v.Sub[0], ctx, rval)
+	case tparse.AUGMENT:
+		// Special case for =
+		if v.Data.Data == "=" {
+			sv := evalValue(v.Sub[0], ctx)
+			rv := evalValue(v.Sub[1], ctx)
+			(*sv).Data = convertVal(*rv, *sv.Type)
 			return rval
-		case "+":
-			a := evalValue(v.Sub[0], ctx)
-			b := evalValue(v.Sub[1], ctx)
-			return TVariable{tInt, a.Data.(int) + b.Data.(int)}
-		case "-":
-			a := evalValue(v.Sub[0], ctx)
-			b := evalValue(v.Sub[1], ctx)
-			return TVariable{tInt, a.Data.(int) - b.Data.(int)}
-		case "*":
-			a := evalValue(v.Sub[0], ctx)
-			b := evalValue(v.Sub[1], ctx)
-			return TVariable{tInt, a.Data.(int) * b.Data.(int)}
-		case "/":
-			a := evalValue(v.Sub[0], ctx)
-			b := evalValue(v.Sub[1], ctx)
-			return TVariable{tInt, a.Data.(int) / b.Data.(int)}
-		case "%":
-			a := evalValue(v.Sub[0], ctx)
-			b := evalValue(v.Sub[1], ctx)
-			return TVariable{tInt, a.Data.(int) % b.Data.(int)}
-		case "&&":
-			a := evalValue(v.Sub[0], ctx)
-			b := evalValue(v.Sub[1], ctx)
-			return TVariable{tBool, a.Data.(bool) && b.Data.(bool)}
-		case "||":
-			a := evalValue(v.Sub[0], ctx)
-			b := evalValue(v.Sub[1], ctx)
-			return TVariable{tInt, a.Data.(bool) || b.Data.(bool)}
-		case "==":
-			a := evalValue(v.Sub[0], ctx)
-			b := evalValue(v.Sub[1], ctx)
-			if equateType(a.Type, b.Type) {
-				return TVariable{tBool, a.Data == b.Data}
-			}
-			return TVariable{tBool, a.Data.(int) == b.Data.(int)}
-		case "!":
+
+		} else if v.Data.Data == "." {
+			return evalDotChain(v, ctx, &null)
+
+		} else if v.Data.Data == "!" {
+
 			a := evalValue(v.Sub[0], ctx)
 			return TVariable{tBool, !(a.Data.(bool))}
-		case ".":
-			return *evalDotChain(v, ctx, &null)
 		}
+
+		// General case setup
+		
+		a, b := evalValue(v.Sub[0]), evalBlock(v.Sub[1])
+		var out TVariable
+		out.Type = tInt
+
+		// General math and bool cases
+		switch v.Data.Data {
+		case "+":
+			out.Data = a.Data.(int) + b.Data.(int)
+		case "-":
+			out.Data = a.Data.(int) - b.Data.(int)
+		case "*":
+			out.Data = a.Data.(int) * b.Data.(int)
+		case "/":
+			out.Data = a.Data.(int) / b.Data.(int)
+		case "%":
+			out.Data = a.Data.(int) % b.Data.(int)
+		case "&&":
+			out.Type = tBool
+			out.Data = a.Data.(bool) && b.Data.(bool)
+		case "||":
+			out.Type = tBool
+			out.Data = a.Data.(bool) || b.Data.(bool)
+		case "==":
+			out.Type = tBool
+			if equateType(a.Type, b.Type) {
+				out.Data = a.Data == b.Data
+			} else {
+				out.Data = a.Data.(int) == b.Data.(int)
+			}
+		case "!=":
+			out.Type = tBool
+			if equateType(a.Type, b.Type) {
+				out.Data = a.Data != b.Data
+			} else {
+				out.Data = a.Data.(int) != b.Data.(int)
+			}
+		}
+
+		return &out
 	}
+
 	return null
 }
 
