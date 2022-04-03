@@ -60,11 +60,11 @@ func errOut(msg string) {
 	panic(">>> PANIC FROM EVAL <<<")
 }
 
-func errOutCTX(msg string, ctx VarMap) {
+func errOutCTX(msg string, ctx *VarMap) {
 	fmt.Println("==== BEGIN ERROR ====")
 	fmt.Println(msg)
 	fmt.Println(cart)
-	fmt.Println(ctx)
+	fmt.Println(*ctx)
 	fmt.Println("====  END  ERROR ====")
 	panic(">>> PANIC FROM EVAL <<<")
 }
@@ -552,7 +552,7 @@ func resolveArtifact(a TArtifact, ctx *VarMap) *TVariable {
 	if len(a.Path) == 0 {
 		val, prs := (*ctx)[a.Name]
 		if !prs {
-			errOutCTX(fmt.Sprintf("Could not resolve %s in the current context.", a.Name), *ctx)
+			errOutCTX(fmt.Sprintf("Could not resolve %s in the current context.", a.Name), ctx)
 		}
 		return val
 	}
@@ -623,7 +623,16 @@ func evalDotChain(v tparse.Node, ctx *VarMap, wk *TVariable) *TVariable {
 }
 
 func setVal(v tparse.Node, ctx *VarMap, val *TVariable) *TVariable {
+	return &null
+}
 
+func evalCall() {
+
+}
+
+func evalIndex(v tparse.Node, sk, i int) *TVariable {
+	
+	return &null
 }
 
 // Parse a value node
@@ -631,10 +640,10 @@ func evalValue(v tparse.Node, ctx *VarMap) *TVariable {
 
 	// STRUCT/ARRAY DEF
 	if v.Data.Data == "comp" {
-		out = []interface{}
+		out := []interface{}{}
 
 		for i := 0; i < len(v.Sub); i++ {
-			tmp = evalValue(v.Sub[i], ctx)
+			tmp := evalValue(v.Sub[i], ctx)
 			out = append(out, (*tmp).Data)
 		}
 
@@ -646,6 +655,28 @@ func evalValue(v tparse.Node, ctx *VarMap) *TVariable {
 		t := getLiteralType(v)
 		return &TVariable{t, getLiteral(v, t)}
 	case tparse.DEFWORD:
+		if len(v.Sub) > 0 {
+			if v.Sub[0].Data.Data == "index" {
+				//return evalIndex()
+			} else if v.Sub[0].Data.Data == "call" {
+				params := []TVariable{}
+
+				for i := 0; i < len(v.Sub[0].Sub); i++ {
+					params = append(params, *evalValue(v.Sub[0].Sub[i], ctx))
+				}
+				
+				out := evalBlock(*searchNode(TArtifact{[]string{}, v.Data.Data}), params)
+
+				return &out
+			}
+		}
+
+		out, prs := (*ctx)[v.Data.Data]
+		if prs {
+			return out
+		}
+		
+		errOutCTX(fmt.Sprintf("Unable to find variable %s when parsing value.", v.Data.Data), ctx)
 
 	case tparse.AUGMENT:
 		// Special case for =
@@ -658,12 +689,12 @@ func evalValue(v tparse.Node, ctx *VarMap) *TVariable {
 		} else if v.Data.Data == "!" {
 
 			a := evalValue(v.Sub[0], ctx)
-			return TVariable{tBool, !(a.Data.(bool))}
+			return &TVariable{tBool, !(a.Data.(bool))}
 		}
 
 		// General case setup
 		
-		a, b := evalValue(v.Sub[0]), evalBlock(v.Sub[1])
+		a, b := evalValue(v.Sub[0], ctx), evalValue(v.Sub[1], ctx)
 		var out TVariable
 		out.Type = tInt
 
@@ -704,7 +735,7 @@ func evalValue(v tparse.Node, ctx *VarMap) *TVariable {
 		return &out
 	}
 
-	return null
+	return &null
 }
 
 // Generate a value for a definition
@@ -738,7 +769,7 @@ func evalBlock(b tparse.Node, params []TVariable) TVariable {
 				return val
 			}
 		case "return":
-			return evalValue(b.Sub[i].Sub[0], &ctx)
+			return *evalValue(b.Sub[i].Sub[0], &ctx)
 		}
 	}
 
