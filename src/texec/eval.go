@@ -426,49 +426,93 @@ func getLiteralType(v tparse.Node) TType {
 // USE ONLY IN THE CASE OF tStruct!
 func cvsa(sct TType, dat []interface{}) VarMap {
 	sv := searchDef(sct.T)
-
+	
+	old_c := cart
+	cart = sct.T
+	
 	vars := sv.Data.([]TVariable)
-	if len(vars) != len(cmp) {
+	if len(vars) != len(dat) {
 		return nil
 	}
 
 	out := make(VarMap)
 
 	for i:=0;i<len(vars);i++ {
-		if isStruct(vars[i].Type) {
-		} else if isArray(vars) {
+		tmp := TVariable{vars[i].Type, nil}
+		if isStruct(vars[i].Type, 0) {
+			tmp.Data = cvsa(vars[i].Type, dat[i].([]interface{}))
+		} else if isArray(vars[i].Type, 0) {
+			tmp.Data = cata(vars[i].Type, 1, dat[i].([]interface{}))
+		} else {
+			tmp.Data = dat[i]
 		}
+		out[vars[i].Data.(string)] = &tmp
 	}
+
+	cart = old_c
 
 	return out
 }
 
-// Copy Struct To Struct (csts)
-func csts(str TType, skp int, dat VarMap) VarMap {
-}
-
 // Copy Array To Array (cata)
-func cata(str TType, skp int, dat []interface{}) {
+// USE ONLY IN CASE OF tStruct!
+func cata(str TType, skp int, dat []interface{}) interface{} {
+	if isArray(str, skp) {
+		out := []interface{}{}
+		for i := 0; i < len(dat); i++ {
+			out = append(out, cata(str, skp + 1, dat[i].([]interface{})))
+		}
+		return out
+	} else if isStruct(str, skp) {
+		out := []VarMap{}
+		for i := 0; i < len(dat); i++ {
+			out = append(out, cvsa(str, dat[i].([]interface{})))
+		}
+		return out
+	}
+
+	if equateTypePSO(str, tInt, skp) {
+		out := []int{}
+		for i := 0; i < len(dat); i++ {
+			out = append(out, dat[i].(int))
+		}
+		return out
+	} else if equateTypePSO(str, tByte, skp) || equateTypePSO(str, tCharp, skp) {
+		out := []byte{}
+		for i := 0; i < len(dat); i++ {
+			out = append(out, dat[i].(byte))
+		}
+		return out
+	} else if equateTypePSO(str, tFloat, skp) {
+		out := []float64{}
+		for i := 0; i < len(dat); i++ {
+			out = append(out, dat[i].(float64))
+		}
+		return out
+	}
+
+	errOut("Unknown cata error.")
+	return nil
 }
 
 func convertValPS(from, to TType, sk int, dat interface{}) interface{} {
-	if equateTypePS(from, tStruct, sk) {
+	if equateTypePSO(from, tStruct, sk) {
 		if isStruct(to, sk) {
-			return cvsa(to, sk)
+			return cvsa(to, dat.([]interface{}))
 		} else if isArray(to, sk) {
-
+			return cata(to, sk + 1, dat.([]interface{}))
 		}
 	} else if isArray(from, sk) {
 		if isArray(to, sk) {
-			out := []interface{}
+			out := []interface{}{}
 			for i := 0; i < len(dat.([]interface{}));i++ {
 				out = append(out, convertValPS(from, to, sk + 1, dat.([]interface{})[i]))
 			}
 		}
-	} else if equateTypePS(from, tInt, sk) {
-		if equateTypePS(to, tInt, sk) {
+	} else if equateTypePSO(from, tInt, sk) {
+		if equateTypePSO(to, tInt, sk) {
 			return dat.(int)
-		} else if equateTypePS(to, tCharp, sk) {
+		} else if equateTypePSO(to, tCharp, sk) {
 			return dat.(byte)
 		}
 	}
@@ -527,13 +571,13 @@ func isStruct(t TType, skp int) bool {
 
 	ch = ch || isPointer(t, skp)
 	ch = ch || isArray(t, skp)
-	ch = ch || equateTypePS(t, tFile, skp)
-	ch = ch || equateTypePS(t, tInt, skp)
-	ch = ch || equateTypePS(t, tByte, skp)
-	ch = ch || equateTypePS(t, tFloat, skp)
-	ch = ch || equateTypePS(t, tCharp, skp)
-	ch = ch || equateTypePS(t, tBool, skp)
-	ch = ch || equateTypePS(t, tNull, skp)
+	ch = ch || equateTypePSO(t, tFile, skp)
+	ch = ch || equateTypePSO(t, tInt, skp)
+	ch = ch || equateTypePSO(t, tByte, skp)
+	ch = ch || equateTypePSO(t, tFloat, skp)
+	ch = ch || equateTypePSO(t, tCharp, skp)
+	ch = ch || equateTypePSO(t, tBool, skp)
+	ch = ch || equateTypePSO(t, tNull, skp)
 
 	return !ch
 }
@@ -578,8 +622,25 @@ func evalDotChain(v tparse.Node, ctx *VarMap, wk *TVariable) *TVariable {
 	return &null
 }
 
+func setVal(v tparse.Node, ctx *VarMap, val *TVariable) *TVariable {
+
+}
+
 // Parse a value node
 func evalValue(v tparse.Node, ctx *VarMap) *TVariable {
+
+	// STRUCT/ARRAY DEF
+	if v.Data.Data == "comp" {
+		out = []interface{}
+
+		for i := 0; i < len(v.Sub); i++ {
+			tmp = evalValue(v.Sub[i], ctx)
+			out = append(out, (*tmp).Data)
+		}
+
+		return &TVariable{tStruct, out}
+	}
+
 	switch v.Data.Type {
 	case tparse.LITERAL:
 		t := getLiteralType(v)
@@ -589,10 +650,7 @@ func evalValue(v tparse.Node, ctx *VarMap) *TVariable {
 	case tparse.AUGMENT:
 		// Special case for =
 		if v.Data.Data == "=" {
-			sv := evalValue(v.Sub[0], ctx)
-			rv := evalValue(v.Sub[1], ctx)
-			(*sv).Data = convertVal(*rv, *sv.Type)
-			return rval
+			return setVal(v.Sub[0], ctx, evalValue(v.Sub[1], ctx))
 
 		} else if v.Data.Data == "." {
 			return evalDotChain(v, ctx, &null)
@@ -700,9 +758,9 @@ func EvalTNSL(root *TModule, args string) TVariable {
 			"" },
 		sarg }
 
-	mainNod := getNode(prog, "main")
+	mainNode := getNode(prog, "main")
 
-	fmt.Println(mainNod)
+	fmt.Println(mainNode)
 
-	return evalBlock(*mainNod, []TVariable{targ})
+	return evalBlock(*mainNode, []TVariable{targ})
 }
