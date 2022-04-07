@@ -339,14 +339,21 @@ func stripType(t TType, s int) TType {
 
 // Value generation
 
-func getStringLiteral(v tparse.Node) []byte {
+func getStringLiteral(v tparse.Node) []interface{} {
 	str, err := strconv.Unquote(v.Data.Data)
 
 	if err != nil {
 		errOut(fmt.Sprintf("Failed to parse string literal %v", v.Data))
 	}
 
-	return []byte(str)
+	dat := []byte(str)
+	out := []interface{}{}
+
+	for i := 0; i < len(dat); i++ {
+		out = append(out, dat)
+	}
+
+	return out
 }
 
 func getCharLiteral(v tparse.Node) byte {
@@ -472,7 +479,7 @@ func cata(st TArtifact, dat []interface{}) []interface{} {
 	for i := 0; i < len(dat); i++ {
 		switch v := dat[i].(type) {
 		case []interface{}:
-			out = append(out, cata(st, dat))
+			out = append(out, cata(st, v))
 		case VarMap:
 			out = append(out, csts(st, v))
 		default:
@@ -517,12 +524,13 @@ func csts(st TArtifact, dat VarMap) VarMap {
 
 func convertValPS(to TType, sk int, dat interface{}) interface{} {
 	var numcv float64
-	switch v := dat.( type ) {
+	switch v := dat.(type) {
 	case []interface{}:
-		if isStruct(to, sk) {
-			return cvsa(to.T, v)
-		} else if isArray(to, sk) {
+		if isArray(to, sk) {
 			return cata(to.T, v)
+		} else if isStruct(to, sk) {
+			fmt.Println(to)
+			return cvsa(to.T, v)
 		}
 	case VarMap:
 		return csts(to.T, v)
@@ -535,7 +543,12 @@ func convertValPS(to TType, sk int, dat interface{}) interface{} {
 	case float64:
 		numcv = v
 		goto NCV
-		
+	case bool:
+		numcv = 0
+		if v {
+			numcv = 1
+		}
+		goto NCV
 	}
 
 	errOut(fmt.Sprintf("Unable to convert between two types.\nTO: %v\nSK: %d\nDT: %v", to, sk, dat))
@@ -549,15 +562,15 @@ func convertValPS(to TType, sk int, dat interface{}) interface{} {
 	} else if equateTypePSO(to, tByte, sk) {
 		return byte(numcv)
 	} else if equateTypePSO(to, tBool, sk) {
-		return numcv == 0
+		return numcv != 0
 	}
 
 	errOut(fmt.Sprintf("Unable to convert between two types.\nTO: %v\nSK: %d\nDT: %v", to, sk, dat))
 	return nil
 }
 
-func convertVal(dat TVariable, to TType) interface{} {
-	return convertValPS(to, 0, dat.Data)
+func convertVal(dat TVariable, to TType) *TVariable {
+	return &TVariable{to, convertValPS(to, 0, dat.Data)}
 }
 
 //#####################
@@ -628,9 +641,7 @@ func isPointer(t TType, skp int) bool {
 }
 
 func isArray(t TType, skp int) bool {
-	for ;skp < len(t.Pre) && t.Pre[skp] == "const"; skp++ {}
-
-	if len(t.Pre) >= skp {
+	if len(t.Pre) <= skp {
 		return false
 	}
 
@@ -774,7 +785,7 @@ func evalDef(v tparse.Node, ctx *VarMap) {
 	
 	for i := 0; i < len(v.Sub[1].Sub); i++ {
 		if v.Sub[1].Sub[i].Data.Data == "=" {
-			(*ctx)[v.Sub[1].Sub[i].Sub[0].Data.Data] = &TVariable{t, convertVal(*evalValue(v.Sub[1].Sub[i].Sub[1], ctx), t)}
+			(*ctx)[v.Sub[1].Sub[i].Sub[0].Data.Data] = convertVal(*evalValue(v.Sub[1].Sub[i].Sub[1], ctx), t)
 		} else {
 			(*ctx)[v.Sub[1].Sub[i].Data.Data] = &TVariable{t, nil}
 		}
@@ -789,7 +800,19 @@ func evalCF(v tparse.Node, ctx *VarMap) (bool, TVariable) {
 }
 
 func evalParams(pd tparse.Node, params *[]TVariable, ctx *VarMap) {
-
+	if len(pd.Sub) == 0 {
+		return
+	}
+	cvt := getType(pd.Sub[0])
+	pi := 0
+	for i := 1; i < len(pd.Sub); i++ {
+		if pd.Sub[i].Data.Type == 10 && pd.Sub[i].Data.Data == "type" {
+			cvt = getType(pd.Sub[i])
+		} else if pd.Sub[i].Data.Type == tparse.DEFWORD {
+			(*ctx)[pd.Sub[i].Data.Data] = convertVal((*params)[pi], cvt)
+			pi++
+		}
+	}
 }
 
 func evalBlock(b tparse.Node, params []TVariable) TVariable {
@@ -800,7 +823,7 @@ func evalBlock(b tparse.Node, params []TVariable) TVariable {
 	if b.Sub[0].Data.Data == "bdef" {
 		for i := 0; i < len(b.Sub[0].Sub); i++ {
 			if b.Sub[0].Sub[i].Data.Data == "[]" {
-				rty = getType(b.Sub[0].Sub[i].Sub[0])
+				rty = getType(b.Sub[0].Sub[i])
 			} else if b.Sub[0].Sub[i].Data.Data == "()" {
 				evalParams(b.Sub[0].Sub[i], &params, &ctx)
 			}
@@ -819,7 +842,7 @@ func evalBlock(b tparse.Node, params []TVariable) TVariable {
 		case "block":
 			ret, val := evalCF(b.Sub[i].Sub[0], &ctx)
 			if ret {
-				return TVariable{rty, convertVal(val, rty)}
+				return *convertVal(val, rty)
 			}
 		case "return":
 			fmt.Println("--- Block return ---")
@@ -827,7 +850,7 @@ func evalBlock(b tparse.Node, params []TVariable) TVariable {
 			ret := *evalValue(b.Sub[i].Sub[0].Sub[0], &ctx)
 			fmt.Println(ret)
 			fmt.Println("--- Return end ---")
-			return TVariable{rty, convertVal(ret, rty)}
+			return *convertVal(ret, rty)
 		}
 	}
 
@@ -840,12 +863,24 @@ func EvalTNSL(root *TModule, args string) TVariable {
 
 	sarg := strings.Split(args, " ")
 
+	saif := []interface{}{}
+
+	for i := 0; i < len(sarg); i++ {
+		tmp := []interface{}{}
+		dat := []byte(sarg[i])
+		for j := 0; j < len(dat); j++ {
+			tmp = append(tmp, dat[j])
+		}
+
+		saif = append(saif, tmp)
+	}
+
 	targ := TVariable {
 		TType {
 			[]string{"{}", "{}"},
 			TArtifact { []string{}, "charp" },
 			"" },
-		sarg }
+		saif }
 
 	mainNode := getNode(prog, "main")
 

@@ -40,7 +40,7 @@ func parseBlock(tokens *[]Token, tok, max int) (Node, int) {
 				if sparse {
 					tmp, tok = parseStatementList(tokens, tok + 1, max)
 				} else {
-					tmp, tok = parseTypeList(tokens, tok + 1, max)
+					tmp, tok = parseType(tokens, tok + 1, max, false)
 				}
 				tmp.Data.Data = "[]"
 				def.Sub = append(def.Sub, tmp)
@@ -215,7 +215,7 @@ func keywordStatement(tokens *[]Token, tok, max int) (Node, int) {
 		out.Sub = append(out.Sub, tmp)
 		tok++
 		if (*tokens)[tok].Data == "[" {
-			tmp, tok = parseTypeList(tokens, tok + 1, max)
+			tmp, tok = parseType(tokens, tok + 1, max, false)
 			out.Sub = append(out.Sub, tmp)
 			tok++
 		}

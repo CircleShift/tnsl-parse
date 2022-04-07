@@ -179,7 +179,12 @@ func tfile_write(file, in TVariable) {
 			b[0] = (in.Data).(byte)
 			(file.Data).(*os.File).Write(b)
 		} else if equateType(in.Type, tByteArray) || equateType(in.Type, tString) {
-			(file.Data).(*os.File).Write((in.Data).([]byte))
+			dat := (in.Data).([]interface{})
+			wrt := []byte{}
+			for i := 0; i < len(dat); i++ {
+				wrt = append(wrt, dat[i].(byte))
+			}
+			(file.Data).(*os.File).Write(wrt)
 		}
 	} else {
 		(file.Data).(*os.File).Close()
