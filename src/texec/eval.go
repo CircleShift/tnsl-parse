@@ -569,7 +569,7 @@ func convertValPS(to TType, sk int, dat interface{}) interface{} {
 	return nil
 }
 
-func convertVal(dat TVariable, to TType) *TVariable {
+func convertVal(dat *TVariable, to TType) *TVariable {
 	return &TVariable{to, convertValPS(to, 0, dat.Data)}
 }
 
@@ -601,9 +601,6 @@ func resolveArtifact(a TArtifact, ctx *VarMap) *TVariable {
 	if !prs || len(a.Path) != 0 {
 		// Try searching the modules for it
 		val = searchDef(a)
-		if val == nil {
-			errOutCTX(fmt.Sprintf("Could not resolve %s in the current context.", a.Name), ctx)
-		}
 	}
 	return val
 }
@@ -669,7 +666,33 @@ func evalDotChain(v tparse.Node, ctx *VarMap, wk *TVariable) *TVariable {
 }
 
 func setVal(v tparse.Node, ctx *VarMap, val *TVariable) *TVariable {
-	return &null
+	art := TArtifact{[]string{}, v.Data.Data}
+	wrk := resolveArtifact(art, ctx)
+
+	if v.Data.Data == "." {
+		art.Name = v.Sub[0].Data.Data
+		wrk := resolveArtifact(art, ctx)
+		for ;wrk == nil; {
+			art.Path = append(art.Path, art.Name)
+			v = v.Sub[1]
+			if v.Data.Data == "." {
+				art.Name = v.Sub[0].Data.Data
+				wrk = resolveArtifact(art, ctx)
+			} else {
+				art.Name = v.Data.Data
+				wrk = resolveArtifact(art, ctx)
+				break
+			}
+		}
+	}
+	
+	if wrk == nil {
+		errOutCTX(fmt.Sprintf("Unable to set variable %s due to the variable not existing.", art), ctx)
+	}
+
+	(*wrk).Data = convertValPS((*wrk).Type, 0, val.Data)
+	
+	return wrk
 }
 
 func evalCall() {
@@ -729,48 +752,42 @@ func evalValue(v tparse.Node, ctx *VarMap) *TVariable {
 
 		} else if v.Data.Data == "!" {
 
-			a := evalValue(v.Sub[0], ctx)
+			a := convertVal(evalValue(v.Sub[0], ctx), tBool)
 			return &TVariable{tBool, !(a.Data.(bool))}
 		}
 
 		// General case setup
 		
-		a, b := evalValue(v.Sub[0], ctx), evalValue(v.Sub[1], ctx)
+		a := convertVal(evalValue(v.Sub[0], ctx), tFloat)
+		b := convertVal(evalValue(v.Sub[1], ctx), tFloat)
 		var out TVariable
-		out.Type = tInt
+		out.Type = tFloat
 
 		// General math and bool cases
 		switch v.Data.Data {
 		case "+":
-			out.Data = a.Data.(int) + b.Data.(int)
+			out.Data = a.Data.(float64) + b.Data.(float64)
 		case "-":
-			out.Data = a.Data.(int) - b.Data.(int)
+			out.Data = a.Data.(float64) - b.Data.(float64)
 		case "*":
-			out.Data = a.Data.(int) * b.Data.(int)
+			out.Data = a.Data.(float64) * b.Data.(float64)
 		case "/":
-			out.Data = a.Data.(int) / b.Data.(int)
+			out.Data = a.Data.(float64) / b.Data.(float64)
 		case "%":
-			out.Data = a.Data.(int) % b.Data.(int)
+			out.Type = tInt
+			out.Data = int(a.Data.(float64)) % int(b.Data.(float64))
 		case "&&":
 			out.Type = tBool
-			out.Data = a.Data.(bool) && b.Data.(bool)
+			out.Data = a.Data.(float64) == 1 && b.Data.(float64) == 1
 		case "||":
 			out.Type = tBool
-			out.Data = a.Data.(bool) || b.Data.(bool)
+			out.Data = a.Data.(float64) == 1 || b.Data.(float64) == 1
 		case "==":
 			out.Type = tBool
-			if equateType(a.Type, b.Type) {
-				out.Data = a.Data == b.Data
-			} else {
-				out.Data = a.Data.(int) == b.Data.(int)
-			}
+			out.Data = a.Data == b.Data
 		case "!=":
 			out.Type = tBool
-			if equateType(a.Type, b.Type) {
-				out.Data = a.Data != b.Data
-			} else {
-				out.Data = a.Data.(int) != b.Data.(int)
-			}
+			out.Data = a.Data != b.Data
 		}
 
 		return &out
@@ -785,7 +802,7 @@ func evalDef(v tparse.Node, ctx *VarMap) {
 	
 	for i := 0; i < len(v.Sub[1].Sub); i++ {
 		if v.Sub[1].Sub[i].Data.Data == "=" {
-			(*ctx)[v.Sub[1].Sub[i].Sub[0].Data.Data] = convertVal(*evalValue(v.Sub[1].Sub[i].Sub[1], ctx), t)
+			(*ctx)[v.Sub[1].Sub[i].Sub[0].Data.Data] = convertVal(evalValue(v.Sub[1].Sub[i].Sub[1], ctx), t)
 		} else {
 			(*ctx)[v.Sub[1].Sub[i].Data.Data] = &TVariable{t, nil}
 		}
@@ -809,7 +826,7 @@ func evalParams(pd tparse.Node, params *[]TVariable, ctx *VarMap) {
 		if pd.Sub[i].Data.Type == 10 && pd.Sub[i].Data.Data == "type" {
 			cvt = getType(pd.Sub[i])
 		} else if pd.Sub[i].Data.Type == tparse.DEFWORD {
-			(*ctx)[pd.Sub[i].Data.Data] = convertVal((*params)[pi], cvt)
+			(*ctx)[pd.Sub[i].Data.Data] = convertVal(&(*params)[pi], cvt)
 			pi++
 		}
 	}
@@ -842,7 +859,7 @@ func evalBlock(b tparse.Node, params []TVariable) TVariable {
 		case "block":
 			ret, val := evalCF(b.Sub[i].Sub[0], &ctx)
 			if ret {
-				return *convertVal(val, rty)
+				return *convertVal(&val, rty)
 			}
 		case "return":
 			fmt.Println("--- Block return ---")
@@ -850,7 +867,7 @@ func evalBlock(b tparse.Node, params []TVariable) TVariable {
 			ret := *evalValue(b.Sub[i].Sub[0].Sub[0], &ctx)
 			fmt.Println(ret)
 			fmt.Println("--- Return end ---")
-			return *convertVal(ret, rty)
+			return *convertVal(&ret, rty)
 		}
 	}
 
