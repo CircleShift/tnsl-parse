@@ -369,6 +369,16 @@ func getIntLiteral(v tparse.Node) int {
 	return int(i)
 }
 
+func getFloatLiteral(v tparse.Node) float64 {
+	i, err := strconv.ParseFloat(v.Data.Data, 64)
+
+	if err != nil {
+		errOut(fmt.Sprintf("Failed to parse float literal. %v", v.Data))
+	}
+
+	return float64(i)
+}
+
 func getLiteralComposite(v tparse.Node) []interface{} {
 	out := []interface{}{}
 
@@ -379,8 +389,10 @@ func getLiteralComposite(v tparse.Node) []interface{} {
 			out = append(out, getCharLiteral(v.Sub[i]))
 		} else if v.Sub[i].Data.Data == "comp" {
 			out = append(out, getLiteralComposite(v.Sub[i]))
-		} else {
+		} else if v.Sub[i].Data.Data[0] == '0' {
 			out = append(out, getIntLiteral(v.Sub[i]))
+		} else {
+			out = append(out, getFloatLiteral(v.Sub[i]))
 		}
 	}
 
@@ -392,15 +404,16 @@ func getBoolLiteral(v tparse.Node) bool {
 }
 
 func getLiteral(v tparse.Node, t TType) interface{} {
-
-	if equateType(t, tInt) {
-		return getIntLiteral(v)
+	if equateType(t, tFloat) {
+		return getFloatLiteral(v)
 	} else if equateType(t, tCharp) {
 		return getCharLiteral(v)
 	} else if equateType(t, tString) {
 		return getStringLiteral(v)
 	} else if equateType(t, tBool) {
-		getBoolLiteral(v)
+		return getBoolLiteral(v)
+	} else if equateType(t, tInt) {
+		return getIntLiteral(v)
 	}
 
 	return getLiteralComposite(v)
@@ -415,20 +428,20 @@ func getLiteralType(v tparse.Node) TType {
 		return tStruct
 	} else if v.Data.Data == "true" || v.Data.Data == "false" {
 		return tBool
-	} else {
+	} else if v.Data.Data[0] == '0' {
 		return tInt
+	} else {
+		return tFloat
 	}
-
-	return tNull
 }
 
 // Convert Value to Struct from Array (cvsa)
 // USE ONLY IN THE CASE OF tStruct!
-func cvsa(sct TType, dat []interface{}) VarMap {
-	sv := searchDef(sct.T)
+func cvsa(sct TArtifact, dat []interface{}) VarMap {
+	sv := searchDef(sct)
 	
 	old_c := cart
-	cart = sct.T
+	cart = sct
 	
 	vars := sv.Data.([]TVariable)
 	if len(vars) != len(dat) {
@@ -440,9 +453,7 @@ func cvsa(sct TType, dat []interface{}) VarMap {
 	for i:=0;i<len(vars);i++ {
 		tmp := TVariable{vars[i].Type, nil}
 		if isStruct(vars[i].Type, 0) {
-			tmp.Data = cvsa(vars[i].Type, dat[i].([]interface{}))
-		} else if isArray(vars[i].Type, 0) {
-			tmp.Data = cata(vars[i].Type, 1, dat[i].([]interface{}))
+			tmp.Data = cvsa(vars[i].Type.T, dat[i].([]interface{}))
 		} else {
 			tmp.Data = dat[i]
 		}
@@ -454,75 +465,99 @@ func cvsa(sct TType, dat []interface{}) VarMap {
 	return out
 }
 
-// Copy Array To Array (cata)
-// USE ONLY IN CASE OF tStruct!
-func cata(str TType, skp int, dat []interface{}) interface{} {
-	if isArray(str, skp) {
-		out := []interface{}{}
-		for i := 0; i < len(dat); i++ {
-			out = append(out, cata(str, skp + 1, dat[i].([]interface{})))
+// Copy aray to aray (cata)
+func cata(st TArtifact, dat []interface{}) []interface{} {
+	out := []interface{}{}
+
+	for i := 0; i < len(dat); i++ {
+		switch v := dat[i].(type) {
+		case []interface{}:
+			out = append(out, cata(st, dat))
+		case VarMap:
+			out = append(out, csts(st, v))
+		default:
+			out = append(out, v)
 		}
-		return out
-	} else if isStruct(str, skp) {
-		out := []VarMap{}
-		for i := 0; i < len(dat); i++ {
-			out = append(out, cvsa(str, dat[i].([]interface{})))
-		}
-		return out
 	}
 
-	if equateTypePSO(str, tInt, skp) {
-		out := []int{}
-		for i := 0; i < len(dat); i++ {
-			out = append(out, dat[i].(int))
-		}
-		return out
-	} else if equateTypePSO(str, tByte, skp) || equateTypePSO(str, tCharp, skp) {
-		out := []byte{}
-		for i := 0; i < len(dat); i++ {
-			out = append(out, dat[i].(byte))
-		}
-		return out
-	} else if equateTypePSO(str, tFloat, skp) {
-		out := []float64{}
-		for i := 0; i < len(dat); i++ {
-			out = append(out, dat[i].(float64))
-		}
-		return out
-	}
-
-	errOut("Unknown cata error.")
-	return nil
+	return out
 }
 
-func convertValPS(from, to TType, sk int, dat interface{}) interface{} {
-	if equateTypePSO(from, tStruct, sk) {
-		if isStruct(to, sk) {
-			return cvsa(to, dat.([]interface{}))
-		} else if isArray(to, sk) {
-			return cata(to, sk + 1, dat.([]interface{}))
+// Copy struct to struct
+// Makes a deep copy of a struct.
+func csts(st TArtifact, dat VarMap) VarMap {
+	sv := searchDef(st)
+	
+	old_c := cart
+	cart = st
+	
+	vars := sv.Data.([]TVariable)
+
+	out := make(VarMap)
+
+	for i := 0; i < len(vars); i++ {
+		var dts interface{} = nil
+
+		switch v := dat[vars[i].Data.(string)].Data.(type) {
+		case []interface{}:
+			dts = cata(vars[i].Type.T, v)
+		case VarMap:
+			dts = csts(vars[i].Type.T, v)
+		default:
+			dts = v
 		}
-	} else if isArray(from, sk) {
-		if isArray(to, sk) {
-			out := []interface{}{}
-			for i := 0; i < len(dat.([]interface{}));i++ {
-				out = append(out, convertValPS(from, to, sk + 1, dat.([]interface{})[i]))
-			}
-		}
-	} else if equateTypePSO(from, tInt, sk) {
-		if equateTypePSO(to, tInt, sk) {
-			return dat.(int)
-		} else if equateTypePSO(to, tCharp, sk) {
-			return dat.(byte)
-		}
+		
+		out[vars[i].Data.(string)] = &TVariable{vars[i].Type, dts}
 	}
 
-	errOut(fmt.Sprintf("Unable to convert between two types.\nFR: %v\nTO: %v\nSK: %d\nDT: %v", from, to, sk, dat))
+	cart = old_c
+
+	return out
+}
+
+func convertValPS(to TType, sk int, dat interface{}) interface{} {
+	var numcv float64
+	switch v := dat.( type ) {
+	case []interface{}:
+		if isStruct(to, sk) {
+			return cvsa(to.T, v)
+		} else if isArray(to, sk) {
+			return cata(to.T, v)
+		}
+	case VarMap:
+		return csts(to.T, v)
+	case int:
+		numcv = float64(v)
+		goto NCV
+	case byte:
+		numcv = float64(v)
+		goto NCV
+	case float64:
+		numcv = v
+		goto NCV
+		
+	}
+
+	errOut(fmt.Sprintf("Unable to convert between two types.\nTO: %v\nSK: %d\nDT: %v", to, sk, dat))
+	return nil
+
+	NCV:
+	if equateTypePSO(to, tInt, sk) {
+		return int(numcv)
+	} else if equateTypePSO(to, tFloat, sk) {
+		return float64(numcv)
+	} else if equateTypePSO(to, tByte, sk) {
+		return byte(numcv)
+	} else if equateTypePSO(to, tBool, sk) {
+		return numcv == 0
+	}
+
+	errOut(fmt.Sprintf("Unable to convert between two types.\nTO: %v\nSK: %d\nDT: %v", to, sk, dat))
 	return nil
 }
 
 func convertVal(dat TVariable, to TType) interface{} {
-	return convertValPS(dat.Type, to, 0, dat.Data)
+	return convertValPS(to, 0, dat.Data)
 }
 
 //#####################
@@ -549,15 +584,15 @@ func resolveArtifactCall(a TArtifact, params []TVariable) TVariable {
 }
 
 func resolveArtifact(a TArtifact, ctx *VarMap) *TVariable {
-	if len(a.Path) == 0 {
-		val, prs := (*ctx)[a.Name]
-		if !prs {
+	val, prs := (*ctx)[a.Name]
+	if !prs || len(a.Path) != 0 {
+		// Try searching the modules for it
+		val = searchDef(a)
+		if val == nil {
 			errOutCTX(fmt.Sprintf("Could not resolve %s in the current context.", a.Name), ctx)
 		}
-		return val
 	}
-
-	return nil
+	return val
 }
 
 //#################
@@ -671,12 +706,7 @@ func evalValue(v tparse.Node, ctx *VarMap) *TVariable {
 			}
 		}
 
-		out, prs := (*ctx)[v.Data.Data]
-		if prs {
-			return out
-		}
-		
-		errOutCTX(fmt.Sprintf("Unable to find variable %s when parsing value.", v.Data.Data), ctx)
+		return resolveArtifact(TArtifact{[]string{}, v.Data.Data}, ctx)
 
 	case tparse.AUGMENT:
 		// Special case for =
@@ -738,14 +768,18 @@ func evalValue(v tparse.Node, ctx *VarMap) *TVariable {
 	return &null
 }
 
-// Generate a value for a definition
-func evalDefVal(v tparse.Node, ctx *VarMap) {
-
-}
-
 // Eval a definition
 func evalDef(v tparse.Node, ctx *VarMap) {
-
+	t := getType(v.Sub[0])
+	
+	for i := 0; i < len(v.Sub[1].Sub); i++ {
+		if v.Sub[1].Sub[i].Data.Data == "=" {
+			(*ctx)[v.Sub[1].Sub[i].Sub[0].Data.Data] = &TVariable{t, convertVal(*evalValue(v.Sub[1].Sub[i].Sub[1], ctx), t)}
+		} else {
+			(*ctx)[v.Sub[1].Sub[i].Data.Data] = &TVariable{t, nil}
+		}
+		
+	}
 }
 
 // Eval a control flow
@@ -754,22 +788,46 @@ func evalCF(v tparse.Node, ctx *VarMap) (bool, TVariable) {
 	return false, null
 }
 
+func evalParams(pd tparse.Node, params *[]TVariable, ctx *VarMap) {
+
+}
+
 func evalBlock(b tparse.Node, params []TVariable) TVariable {
 	ctx := make(VarMap)
+
+	var rty TType = tNull
+
+	if b.Sub[0].Data.Data == "bdef" {
+		for i := 0; i < len(b.Sub[0].Sub); i++ {
+			if b.Sub[0].Sub[i].Data.Data == "[]" {
+				rty = getType(b.Sub[0].Sub[i].Sub[0])
+			} else if b.Sub[0].Sub[i].Data.Data == "()" {
+				evalParams(b.Sub[0].Sub[i], &params, &ctx)
+			}
+		}
+	}
 
 	for i := 0; i < len(b.Sub); i++ {
 		switch b.Sub[i].Data.Data {
 		case "define":
 			evalDef(b.Sub[i], &ctx)
 		case "value":
-			evalValue(b.Sub[i], &ctx)
+			fmt.Println("--- Eval Value ---")
+			fmt.Println(b.Sub[i].Sub[0])
+			fmt.Println(*evalValue(b.Sub[i].Sub[0], &ctx))
+			fmt.Println("--- End Value ---")
 		case "block":
-			ret, val := evalCF(b.Sub[i], &ctx)
+			ret, val := evalCF(b.Sub[i].Sub[0], &ctx)
 			if ret {
-				return val
+				return TVariable{rty, convertVal(val, rty)}
 			}
 		case "return":
-			return *evalValue(b.Sub[i].Sub[0], &ctx)
+			fmt.Println("--- Block return ---")
+			fmt.Println(b.Sub[i].Sub[0].Sub[0])
+			ret := *evalValue(b.Sub[i].Sub[0].Sub[0], &ctx)
+			fmt.Println(ret)
+			fmt.Println("--- Return end ---")
+			return TVariable{rty, convertVal(ret, rty)}
 		}
 	}
 

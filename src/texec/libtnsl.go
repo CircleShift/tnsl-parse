@@ -26,7 +26,7 @@ import (
 	Parts included:
 		- io.print
 		- io.println
-		- io.open_file
+		- io.openFile
 		- io.File API for file objects
 	
 	Types included:
@@ -63,8 +63,7 @@ func tnslResolve(callPath TArtifact) int {
 	l := len(callPath.Path)
 	if l < 2 || l > 3 || callPath.Path[0] != "tnsl" || callPath.Path[1] != "io" {
 		return -1
-	}
-	if l > 2 && callPath.Path[2] != "File" {
+	} else if l > 2 && callPath.Path[2] != "File" {
 		return -1
 	}
 
@@ -73,7 +72,7 @@ func tnslResolve(callPath TArtifact) int {
 			return 1;
 		}
 	} else {
-		if callPath.Name == "print" || callPath.Name == "println" || callPath.Name == "open_file" {
+		if callPath.Name == "print" || callPath.Name == "println" || callPath.Name == "readFile" || callPath.Name == "writeFile" {
 			return 0;
 		}
 	}
@@ -91,8 +90,10 @@ func tnslEval(in TVariable, function string) TVariable {
 		tprint(in)
 	case "println":
 		tprintln(in)
-	case "open_file":
-		return topen_file(in)
+	case "readFile":
+		return topenReadFile(in)
+	case "writeFile":
+		return topenWriteFile(in)
 	}
 	return TVariable{tNull, nil}
 }
@@ -132,17 +133,27 @@ func tprintln(in TVariable) {
 	}
 }
 
-func topen_file(in TVariable) TVariable {
+func topenWriteFile(in TVariable) TVariable {
 	if equateType(in.Type, tString) {
-		panic("Tried to open a file, but did not use a string type for the file name.")
+		panic("Tried to open a file (for writing), but did not use a string type for the file name.")
 	}
 	fd, err := os.Create(in.Data.(string))
 	if err != nil {
-		panic(fmt.Sprintf("Failed to open file %v as requested by the program. Aborting.\n%v", in.Data, err))
+		panic(fmt.Sprintf("Failed to open file (for writing) %v as requested by the program. Aborting.\n%v", in.Data, err))
 	}
 	return  TVariable{tFile, fd}
 }
 
+func topenReadFile(in TVariable) TVariable {
+	if equateType(in.Type, tString) {
+		panic("Tried to open a file (for reading), but did not use a string type for the file name.")
+	}
+	fd, err := os.Open(in.Data.(string))
+	if err != nil {
+		panic(fmt.Sprintf("Failed to open file (for reading) %v as requested by the program. Aborting.\n%v", in.Data, err))
+	}
+	return  TVariable{tFile, fd}
+}
 
 // File API
 
