@@ -32,7 +32,7 @@ What works
 - Struct definition
 - Control flow blocks (`if` and `loop` specifically)
 
-What does'nt work
+What doesn't work
 - `else`
 - Function Calls
 - Getting struct members
