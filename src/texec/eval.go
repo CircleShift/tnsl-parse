@@ -645,6 +645,20 @@ func isArray(t TType, skp int) bool {
 	return t.Pre[skp] == "{}"
 }
 
+func evalIndex(n tparse.Node, v *TVariable) *interface{} {
+	var out *interface{} = &(v.Data)
+
+	for i := 0; i < len(n.Sub); i++ {
+		if n.Sub[i].Data.Data == "index" {
+			out = &((*out).([]interface{})[getIntLiteral(n.Sub[i].Sub[0])])
+		} else {
+			break
+		}
+	}
+
+	return out
+}
+
 func evalDotChain(v tparse.Node, ctx *VarMap, wk *TVariable) *TVariable {
 	var wrvm *VarMap
 	wrvm = ctx
@@ -668,15 +682,18 @@ func evalDotChain(v tparse.Node, ctx *VarMap, wk *TVariable) *TVariable {
 func setVal(v tparse.Node, ctx *VarMap, val *TVariable) *TVariable {
 	art := TArtifact{[]string{}, v.Data.Data}
 	wrk := resolveArtifact(art, ctx)
+	vwk := v
 
 	if v.Data.Data == "." {
 		art.Name = v.Sub[0].Data.Data
-		wrk := resolveArtifact(art, ctx)
+		vwk = v.Sub[0]
+		wrk = resolveArtifact(art, ctx)
 		for ;wrk == nil; {
 			art.Path = append(art.Path, art.Name)
 			v = v.Sub[1]
 			if v.Data.Data == "." {
 				art.Name = v.Sub[0].Data.Data
+				vwk = v.Sub[0]
 				wrk = resolveArtifact(art, ctx)
 			} else {
 				art.Name = v.Data.Data
@@ -690,18 +707,11 @@ func setVal(v tparse.Node, ctx *VarMap, val *TVariable) *TVariable {
 		errOutCTX(fmt.Sprintf("Unable to set variable %s due to the variable not existing.", art), ctx)
 	}
 
-	(*wrk).Data = convertValPS((*wrk).Type, 0, val.Data)
+	var set *interface{} = &(wrk.Data)
+
+	(*set) = convertValPS((*wrk).Type, 0, val.Data)
 	
 	return wrk
-}
-
-func evalCall() {
-
-}
-
-func evalIndex(v tparse.Node, sk, i int) *TVariable {
-	
-	return &null
 }
 
 // Parse a value node
@@ -726,7 +736,7 @@ func evalValue(v tparse.Node, ctx *VarMap) *TVariable {
 	case tparse.DEFWORD:
 		if len(v.Sub) > 0 {
 			if v.Sub[0].Data.Data == "index" {
-				//return evalIndex()
+				return evalIndex(v, resolveArtifact(TArtifact{[]string{}, v.Data.Data}, ctx))
 			} else if v.Sub[0].Data.Data == "call" {
 				params := []TVariable{}
 
@@ -754,6 +764,9 @@ func evalValue(v tparse.Node, ctx *VarMap) *TVariable {
 
 			a := convertVal(evalValue(v.Sub[0], ctx), tBool)
 			return &TVariable{tBool, !(a.Data.(bool))}
+		} else if v.Data.Data == "len" {
+			a := evalValue(v.Sub[0], ctx)
+			return &TVariable{tInt, len(a.Data.([]interface{}))}
 		}
 
 		// General case setup
@@ -788,6 +801,18 @@ func evalValue(v tparse.Node, ctx *VarMap) *TVariable {
 		case "!=":
 			out.Type = tBool
 			out.Data = a.Data != b.Data
+		case ">":
+			out.Type = tBool
+			out.Data = a.Data.(float64) > b.Data.(float64)
+		case "<":
+			out.Type = tBool
+			out.Data = a.Data.(float64) < b.Data.(float64)
+		case ">=":
+			out.Type = tBool
+			out.Data = a.Data.(float64) >= b.Data.(float64)
+		case "<=":
+			out.Type = tBool
+			out.Data = a.Data.(float64) <= b.Data.(float64)
 		}
 
 		return &out
@@ -806,7 +831,6 @@ func evalDef(v tparse.Node, ctx *VarMap) {
 		} else {
 			(*ctx)[v.Sub[1].Sub[i].Data.Data] = &TVariable{t, nil}
 		}
-		
 	}
 }
 
