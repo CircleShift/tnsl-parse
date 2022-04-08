@@ -24,6 +24,21 @@ Binaries will be dumped in the "build" folder.
     Parser: sorta works sometimes (subtext: AST generater is at least a little broken, but works for at least some use cases)
     Interpreter: broken
 
+## TODO
+
+What works
+- Variable definition
+- Array definition
+- Struct definition
+- Control flow blocks (`if` and `loop` specifically)
+
+What does'nt work
+- `else`
+- Function Calls
+- Getting struct members
+- Array indexing
+- Appending to arrays
+
 ## Usage
 
 Once you have built the parser, it can be invoked in the build folder with `./parse`.  The cli options are as follows:
