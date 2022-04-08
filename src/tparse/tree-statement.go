@@ -241,9 +241,10 @@ func keywordStatement(tokens *[]Token, tok, max int) (Node, int) {
 		tok++
 		// Check for a numerical value and dip
 	case "return":
-		if (*tokens)[tok].Type != DELIMIT || (*tokens)[tok].Data == "{" || (*tokens)[tok].Data == "(" {
-			tmp, tok = parseValueList(tokens, tok, max)
+		if (*tokens)[tok].Type == LINESEP || (*tokens)[tok].Data == ";/" {
+			return out, tok
 		}
+		tmp, tok = parseValue(tokens, tok, max)
 	case "alloc", "salloc", "realloc":
 		// Parse value list
 		tmp, tok = parseValueList(tokens, tok, max)

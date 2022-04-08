@@ -435,7 +435,7 @@ func getLiteralType(v tparse.Node) TType {
 		return tStruct
 	} else if v.Data.Data == "true" || v.Data.Data == "false" {
 		return tBool
-	} else if v.Data.Data[0] == '0' {
+	} else if len(v.Data.Data) > 2 && v.Data.Data[0] == '0' && v.Data.Data[1] != '.' {
 		return tInt
 	} else {
 		return tFloat
@@ -593,6 +593,8 @@ func resolveArtifactCall(a TArtifact, params []TVariable) TVariable {
 		}
 	}
 
+
+
 	return null
 }
 
@@ -659,6 +661,11 @@ func evalIndex(n tparse.Node, v *TVariable) *interface{} {
 	return out
 }
 
+// Evaluate Call and Index
+func evalCAI(v tparse.Node, art TArtifact, ctx *VarMap) *TVariable {
+	return &null
+}
+
 func evalDotChain(v tparse.Node, ctx *VarMap, wk *TVariable) *TVariable {
 	var wrvm *VarMap
 	wrvm = ctx
@@ -708,6 +715,20 @@ func setVal(v tparse.Node, ctx *VarMap, val *TVariable) *TVariable {
 	}
 
 	var set *interface{} = &(wrk.Data)
+	
+	for ;; {
+		if len(vwk.Sub) > 0 {
+			
+		}
+
+		if v.Data.Data == "." {
+			vwk = v.Sub[0]
+
+			continue
+		}
+
+		break
+	}
 
 	(*set) = convertValPS((*wrk).Type, 0, val.Data)
 	
@@ -735,19 +756,7 @@ func evalValue(v tparse.Node, ctx *VarMap) *TVariable {
 		return &TVariable{t, getLiteral(v, t)}
 	case tparse.DEFWORD:
 		if len(v.Sub) > 0 {
-			if v.Sub[0].Data.Data == "index" {
-				return evalIndex(v, resolveArtifact(TArtifact{[]string{}, v.Data.Data}, ctx))
-			} else if v.Sub[0].Data.Data == "call" {
-				params := []TVariable{}
-
-				for i := 0; i < len(v.Sub[0].Sub); i++ {
-					params = append(params, *evalValue(v.Sub[0].Sub[i], ctx))
-				}
-				
-				out := evalBlock(*searchNode(TArtifact{[]string{}, v.Data.Data}), params)
-
-				return &out
-			}
+			return evalCAI(v, TArtifact{[]string{}, v.Data.Data}, ctx)
 		}
 
 		return resolveArtifact(TArtifact{[]string{}, v.Data.Data}, ctx)
@@ -835,17 +844,123 @@ func evalDef(v tparse.Node, ctx *VarMap) {
 }
 
 // Eval a control flow
-func evalCF(v tparse.Node, ctx *VarMap) (bool, TVariable) {
-	//scopeVars := []string{}
-	return false, null
+func evalCF(v tparse.Node, ctx *VarMap) (bool, TVariable, int) {
+
+	loop := true
+	cond := tparse.Node{tparse.Token{tparse.LITERAL, "true", -1, -1}, []tparse.Node{}}
+	var after *tparse.Node = nil
+
+	if v.Sub[0].Data.Data == "bdef" {
+		var before *tparse.Node
+
+		for i := 0; i < len(v.Sub[0].Sub); i++ {
+			switch v.Sub[0].Sub[i].Data.Data {
+			case "if":
+				loop = false
+			case "()":
+				before = &(v.Sub[0].Sub[i])
+			case "[]":
+				after = &(v.Sub[0].Sub[i])
+			}
+		}
+
+		for i := 0; i < len(before.Sub); i++ {
+			switch before.Sub[i].Data.Data {
+			case "define":
+				evalDef(before.Sub[i], ctx)
+			case "value":
+				val := *evalValue(before.Sub[i].Sub[0], ctx)
+				if i == len(before.Sub) - 1 && equateType(val.Type, tBool) {
+					cond = before.Sub[i].Sub[0]
+				}
+			}
+		}
+	}
+	
+	for ; evalValue(cond, ctx).Data.(bool) ; {
+		fmt.Println("Looping!")
+		for i := 0; i < len(v.Sub); i++ {
+			switch v.Sub[i].Data.Data {
+			case "define":
+				evalDef(v.Sub[i], ctx)
+			case "value":
+				evalValue(v.Sub[i].Sub[0], ctx)
+			case "block":
+				ret, val, brk := evalCF(v.Sub[i], ctx)
+				if ret {
+					return ret, val, 0
+				} else if brk < 0 {
+					if brk < -1 {
+						return false, null, brk + 1
+					}
+					goto CONCF
+				} else if brk > 0 {
+					return false, null, brk - 1
+				}
+			case "return":
+				if len(v.Sub[i].Sub) > 0 {
+					return true, *evalValue(v.Sub[i].Sub[0], ctx), 0
+				}
+				return true, null, 0
+			case "break":
+				brk := 1
+				if len(v.Sub[i].Sub) > 0 {
+					brk = getIntLiteral(v.Sub[i].Sub[0])
+				}
+				if !loop {
+					return false, null, brk
+				}
+				return false, null, brk - 1
+			case "continue":
+				cont := 1
+				if len(v.Sub[i].Sub) > 0 {
+					cont = getIntLiteral(v.Sub[i].Sub[0])
+				}
+				if !loop {
+					return false, null, -cont
+				} else if cont == 1 {
+					goto CONCF
+				}
+				return false, null, 1 - cont
+			}
+		}
+
+		CONCF:
+
+		if after != nil {
+			for i := 0; i < len(after.Sub); i++ {
+				switch after.Sub[i].Data.Data {
+				case "define":
+					evalDef(after.Sub[i], ctx)
+				case "value":
+					val := *evalValue(after.Sub[i].Sub[0], ctx)
+					if i == len(after.Sub) - 1 && equateType(val.Type, tBool) {
+						cond = after.Sub[i].Sub[0]
+					}
+				}
+			}
+		}
+
+		if !loop {
+			break
+		}
+	}
+
+	return false, null, 0
 }
 
-func evalParams(pd tparse.Node, params *[]TVariable, ctx *VarMap) {
+func evalParams(pd tparse.Node, params *[]TVariable, ctx *VarMap, method bool) {
 	if len(pd.Sub) == 0 {
 		return
 	}
 	cvt := getType(pd.Sub[0])
 	pi := 0
+	
+	if method {
+		(*ctx)["self"] = &(*params)[0]
+		pi = 1
+	}
+	
 	for i := 1; i < len(pd.Sub); i++ {
 		if pd.Sub[i].Data.Type == 10 && pd.Sub[i].Data.Data == "type" {
 			cvt = getType(pd.Sub[i])
@@ -856,7 +971,7 @@ func evalParams(pd tparse.Node, params *[]TVariable, ctx *VarMap) {
 	}
 }
 
-func evalBlock(b tparse.Node, params []TVariable) TVariable {
+func evalBlock(b tparse.Node, params []TVariable, method bool) TVariable {
 	ctx := make(VarMap)
 
 	var rty TType = tNull
@@ -866,7 +981,7 @@ func evalBlock(b tparse.Node, params []TVariable) TVariable {
 			if b.Sub[0].Sub[i].Data.Data == "[]" {
 				rty = getType(b.Sub[0].Sub[i])
 			} else if b.Sub[0].Sub[i].Data.Data == "()" {
-				evalParams(b.Sub[0].Sub[i], &params, &ctx)
+				evalParams(b.Sub[0].Sub[i], &params, &ctx, method)
 			}
 		}
 	}
@@ -876,22 +991,14 @@ func evalBlock(b tparse.Node, params []TVariable) TVariable {
 		case "define":
 			evalDef(b.Sub[i], &ctx)
 		case "value":
-			fmt.Println("--- Eval Value ---")
-			fmt.Println(b.Sub[i].Sub[0])
-			fmt.Println(*evalValue(b.Sub[i].Sub[0], &ctx))
-			fmt.Println("--- End Value ---")
+			evalValue(b.Sub[i].Sub[0], &ctx)
 		case "block":
-			ret, val := evalCF(b.Sub[i].Sub[0], &ctx)
+			ret, val, _ := evalCF(b.Sub[i], &ctx)
 			if ret {
 				return *convertVal(&val, rty)
 			}
 		case "return":
-			fmt.Println("--- Block return ---")
-			fmt.Println(b.Sub[i].Sub[0].Sub[0])
-			ret := *evalValue(b.Sub[i].Sub[0].Sub[0], &ctx)
-			fmt.Println(ret)
-			fmt.Println("--- Return end ---")
-			return *convertVal(&ret, rty)
+			return *convertVal(evalValue(b.Sub[i].Sub[0], &ctx), rty)
 		}
 	}
 
@@ -927,5 +1034,5 @@ func EvalTNSL(root *TModule, args string) TVariable {
 
 	fmt.Println(mainNode)
 
-	return evalBlock(*mainNode, []TVariable{targ})
+	return evalBlock(*mainNode, []TVariable{targ}, false)
 }
