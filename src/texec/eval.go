@@ -1039,7 +1039,7 @@ func evalCF(v tparse.Node, ctx *VarMap) (bool, TVariable, int) {
 	var after *tparse.Node = nil
 
 	if v.Sub[0].Data.Data == "bdef" {
-		var before *tparse.Node
+		var before *tparse.Node = nil
 
 		for i := 0; i < len(v.Sub[0].Sub); i++ {
 			switch v.Sub[0].Sub[i].Data.Data {
@@ -1052,15 +1052,17 @@ func evalCF(v tparse.Node, ctx *VarMap) (bool, TVariable, int) {
 			}
 		}
 
-		for i := 0; i < len(before.Sub); i++ {
-			switch before.Sub[i].Data.Data {
-			case "define":
-				evalDef(before.Sub[i], ctx)
-			case "value":
-				val := *evalValue(before.Sub[i].Sub[0], ctx)
-				if i == len(before.Sub) - 1 && equateType(val.Type, tBool) {
-					cond = before.Sub[i].Sub[0]
-					ifout = val.Data.(bool)
+		if before != nil {
+			for i := 0; i < len(before.Sub); i++ {
+				switch before.Sub[i].Data.Data {
+				case "define":
+					evalDef(before.Sub[i], ctx)
+				case "value":
+					val := *evalValue(before.Sub[i].Sub[0], ctx)
+					if i == len(before.Sub) - 1 && equateType(val.Type, tBool) {
+						cond = before.Sub[i].Sub[0]
+						ifout = val.Data.(bool)
+					}
 				}
 			}
 		}
