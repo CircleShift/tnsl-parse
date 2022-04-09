@@ -22,7 +22,7 @@ Binaries will be dumped in the "build" folder.
 ## Status
 
     Parser: sorta works sometimes (subtext: AST generater is at least a little broken, but works for at least some use cases)
-    Interpreter: broken
+    Interpreter: working (sorta)
 
 ## TODO
 
