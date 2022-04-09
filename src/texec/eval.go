@@ -69,6 +69,15 @@ func errOutCTX(msg string, ctx *VarMap) {
 	panic(">>> PANIC FROM EVAL <<<")
 }
 
+func errOutNode(msg string, n tparse.Node) {
+	fmt.Println("==== BEGIN ERROR ====")
+	fmt.Println(msg)
+	fmt.Println(cart)
+	fmt.Printf("Line: %v Char: %v", n.Data.Line, n.Data.Char)
+	fmt.Println("====  END  ERROR ====")
+	panic(">>> PANIC FROM EVAL <<<")
+}
+
 // Names of artifacts, finding artifacts
 
 func getDefNames(def tparse.Node) []string {
@@ -661,32 +670,81 @@ func evalIndex(n tparse.Node, v *TVariable) *interface{} {
 	return out
 }
 
-// Evaluate Call and Index
-func evalCAI(v tparse.Node, art TArtifact, ctx *VarMap) *TVariable {
-	return &null
+// Deals with call and index nodes
+func evalCIN(v tparse.Node, ctx *VarMap, wk *TVariable) *TVariable {
+	if v.Sub[0].Data.Data == "call" {
+		pth := TArtifact{[]string{}, v.Data.Data}
+		
+		if wk != nil {
+			pth.Path = append(wk.Type.T.Path, wk.Type.T.Name)
+		}
+		
+		args := []TVariable{}
+
+		for i := 0; i < len(v.Sub[0].Sub); i++ {
+			args = append(args, *evalValue(v.Sub[0].Sub[i], ctx))
+		}
+
+		// Make call somehow and properly set wk
+	} else {
+		if wk == nil {
+			tmp, prs := (*ctx)[v.Data.Data]
+			if !prs {
+				return nil
+			}
+			wk = &TVariable{tmp.Type, &(tmp.Data)}
+		} else {
+			tmp, prs := (*(wk.Data.(*interface{}))).(VarMap)[v.Data.Data]
+			if !prs {
+				return nil
+			}
+			wk = &TVariable{tmp.Type, &(tmp.Data)}
+		}
+	}
+
+	for i := 0; i < len(v.Sub); i++ {
+		switch v.Sub[i].Data.Data {
+		case "index":
+			ind := convertVal(evalValue(v.Sub[i].Sub[0], ctx), tInt).Data.(int)
+			wk.Data = &((*(wk.Data.(*interface{}))).([]interface{}))[ind]
+		case "`":
+			// De-reference
+			wk.Data = *((*(wk.Data.(*interface{}))).(*interface{}))
+		}
+	}
+
+	return wk
 }
 
-func evalDotChain(v tparse.Node, ctx *VarMap, wk *TVariable) *TVariable {
-	var wrvm *VarMap
-	wrvm = ctx
+func evalDotChain(v tparse.Node, ctx *VarMap) *TVariable {
 
-	if isStruct((*wk).Type, 0) {
-		wrvm = (*wk).Data.(*VarMap)
-	}
-
-	// Check if current name relates to a variable in context or working var
-	dat, prs := (*wrvm)[v.Sub[0].Data.Data]
-	if prs {
-		return evalDotChain(v.Sub[1], ctx, dat)
-	}
-
-	//
-
-
-	return &null
+	return nil
 }
 
 func setVal(v tparse.Node, ctx *VarMap, val *TVariable) *TVariable {
+	var wrk *TVariable = nil
+
+	if v.Data.Data == "." {
+		wrk = evalDotChain(v, ctx)
+		
+		if wrk == nil {
+			errOutNode("Unable to set a variable who's type is null. (Did you make a function call somewhere?)", v)
+		}
+		
+		for ;v.Data.Data == "."; {
+			v = v.Sub[1]
+		}
+	}
+
+
+
+	if len(v.Sub) > 0 {
+		if v.Sub[len(v.Sub) - 1].Data.Data == "++" {
+
+		} else if v.Sub[len(v.Sub) - 1].Data.Data == "--" {
+			//*()convertVal()
+		}
+	}
 	art := TArtifact{[]string{}, v.Data.Data}
 	wrk := resolveArtifact(art, ctx)
 	vwk := v
@@ -756,7 +814,11 @@ func evalValue(v tparse.Node, ctx *VarMap) *TVariable {
 		return &TVariable{t, getLiteral(v, t)}
 	case tparse.DEFWORD:
 		if len(v.Sub) > 0 {
-			return evalCAI(v, TArtifact{[]string{}, v.Data.Data}, ctx)
+			ref := evalCIN(v, ctx, nil)
+			if ref == nil {
+				return &null
+			}
+			return &TVariable{ref.Type, *(ref.Data.(*interface{}))}
 		}
 
 		return resolveArtifact(TArtifact{[]string{}, v.Data.Data}, ctx)
@@ -767,7 +829,11 @@ func evalValue(v tparse.Node, ctx *VarMap) *TVariable {
 			return setVal(v.Sub[0], ctx, evalValue(v.Sub[1], ctx))
 
 		} else if v.Data.Data == "." {
-			return evalDotChain(v, ctx, &null)
+			ref := evalDotChain(v, ctx)
+			if ref == nil {
+				return &null
+			}
+			return &TVariable{ref.Type, *(ref.Data.(*interface{}))}
 
 		} else if v.Data.Data == "!" {
 
@@ -878,7 +944,6 @@ func evalCF(v tparse.Node, ctx *VarMap) (bool, TVariable, int) {
 	}
 	
 	for ; evalValue(cond, ctx).Data.(bool) ; {
-		fmt.Println("Looping!")
 		for i := 0; i < len(v.Sub); i++ {
 			switch v.Sub[i].Data.Data {
 			case "define":
