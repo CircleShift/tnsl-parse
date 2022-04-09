@@ -38,9 +38,11 @@ What (seems to) work
 - Function Calls
 - Getting struct members
 - Array indexing
+- `else` blocks
+- File IO
+- Print statements
 
 What doesn't work
-- `else` blocks
 - Appending to arrays
 
 ## Usage
