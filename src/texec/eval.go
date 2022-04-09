@@ -994,7 +994,7 @@ func evalValue(v tparse.Node, ctx *VarMap) *TVariable {
 		case "==":
 			out.Type = tBool
 			out.Data = a.Data == b.Data
-		case "!=":
+		case "!==":
 			out.Type = tBool
 			out.Data = a.Data != b.Data
 		case ">":
