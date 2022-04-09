@@ -117,11 +117,19 @@ func tnslFileEval(file, in TVariable, function string) TVariable {
 // Generic IO funcs
 
 func tprint(in TVariable) {
-	fmt.Print(in.Data)
+	if equateType(in.Type, tString) {
+		fmt.Print(datToString(in.Data))
+	} else {
+		fmt.Print(in.Data)
+	}
 }
 
 func tprintln(in TVariable) {
-	fmt.Println(in.Data)
+	if equateType(in.Type, tString) {
+		fmt.Println(datToString(in.Data))
+	} else {
+		fmt.Println(in.Data)
+	}
 }
 
 func datToString(dat interface{}) string {

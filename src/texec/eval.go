@@ -455,6 +455,14 @@ func getLiteralType(v tparse.Node) TType {
 	}
 }
 
+func typePrepend(t TType, p string) TType {
+	return TType{append(t.Pre, p), t.T, t.Post}
+}
+
+func typeStrip(t TType) TType {
+	return TType{append([]string{}, t.Pre[1:]...), t.T, t.Post}
+}
+
 // Convert Value to Struct from Array (cvsa)
 // USE ONLY IN THE CASE OF tStruct!
 func cvsa(sct TArtifact, dat []interface{}) VarMap {
@@ -496,7 +504,7 @@ func cata(st TArtifact, dat []interface{}) []interface{} {
 		case VarMap:
 			out = append(out, csts(st, v))
 		default:
-			out = append(out, v)
+			out = append(out, convertValPS(TType{[]string{}, st, ""}, 0, v))
 		}
 	}
 
@@ -536,6 +544,7 @@ func csts(st TArtifact, dat VarMap) VarMap {
 }
 
 func convertValPS(to TType, sk int, dat interface{}) interface{} {
+	fmt.Println(to)
 	if isPointer(to, sk) || equateTypePSO(to, tFile, sk) {
 		return dat
 	}
@@ -575,7 +584,7 @@ func convertValPS(to TType, sk int, dat interface{}) interface{} {
 		return int(numcv)
 	} else if equateTypePSO(to, tFloat, sk) {
 		return float64(numcv)
-	} else if equateTypePSO(to, tByte, sk) {
+	} else if equateTypePSO(to, tByte, sk) || equateTypePSO(to, tCharp, sk) {
 		return byte(numcv)
 	} else if equateTypePSO(to, tBool, sk) {
 		return numcv != 0
@@ -710,12 +719,16 @@ func isArray(t TType, skp int) bool {
 
 // Deals with call and index nodes
 func evalCIN(v tparse.Node, ctx *VarMap, wk *TVariable) *TVariable {
+	fmt.Println(v, wk)
 	if v.Sub[0].Data.Data == "call" {
 		args := []TVariable{}
-
-		pth := wk.Type.T
-		if wk != nil && wk.Data != nil {
-			args = append(args, *wk)
+		
+		pth := TArtifact{[]string{}, v.Data.Data}
+		if wk != nil {
+			pth = wk.Type.T
+			if wk.Data != nil {
+				args = append(args, *wk)
+			}
 		}
 
 		for i := 0; i < len(v.Sub[0].Sub); i++ {
