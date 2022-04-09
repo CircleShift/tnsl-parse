@@ -1246,7 +1246,7 @@ func EvalTNSL(root *TModule, args string) TVariable {
 
 	mainNode := getNode(prog, "main")
 
-	fmt.Println(mainNode)
+	//fmt.Println(mainNode)
 
 	return evalBlock(*mainNode, []TVariable{targ}, false)
 }
