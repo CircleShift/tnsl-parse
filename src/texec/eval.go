@@ -628,7 +628,7 @@ func resolveStructCall(a TArtifact, method string, params []TVariable) TVariable
 		a.Name = method
 		tres := tnslResolve(a)
 
-		if a.Name == "close" {
+		if a.Name == "close" || a.Name == "read" {
 			params = append(params, null)
 		}
 
