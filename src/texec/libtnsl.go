@@ -56,6 +56,9 @@ var (
 	// used only in module definintion
 	tEnum = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name: "enum"}, Post: ""}
 	tStruct = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name: "struct"}, Post: ""}
+
+	// Special types for if chain checking
+	tIF = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name: "if"}, Post: ""}
 )
 
 // tells if the stub supports a function
@@ -114,30 +117,28 @@ func tnslFileEval(file, in TVariable, function string) TVariable {
 // Generic IO funcs
 
 func tprint(in TVariable) {
-	if equateType(in.Type, tString) {
-		fmt.Print(in.Data.(string))
-	} else if equateType(in.Type, tCharp) {
-		fmt.Print(in.Data.(rune))
-	} else {
-		fmt.Print(in.Data)
-	}
+	fmt.Print(in.Data)
 }
 
 func tprintln(in TVariable) {
-	if equateType(in.Type, tString) {
-		fmt.Println(in.Data.(string))
-	} else if equateType(in.Type, tCharp) {
-		fmt.Println(in.Data.(rune))
-	} else {
-		fmt.Println(in.Data)
+	fmt.Println(in.Data)
+}
+
+func datToString(dat interface{}) string {
+	out := []byte{}
+	in := dat.([]interface{})
+	for i := 0; i < len(in); i++ {
+		out = append(out, in[i].(byte))
 	}
+
+	return string(out)
 }
 
 func topenWriteFile(in TVariable) TVariable {
-	if equateType(in.Type, tString) {
+	if !equateType(in.Type, tString) {
 		panic("Tried to open a file (for writing), but did not use a string type for the file name.")
 	}
-	fd, err := os.Create(in.Data.(string))
+	fd, err := os.Create(datToString(in.Data))
 	if err != nil {
 		panic(fmt.Sprintf("Failed to open file (for writing) %v as requested by the program. Aborting.\n%v", in.Data, err))
 	}
@@ -145,10 +146,10 @@ func topenWriteFile(in TVariable) TVariable {
 }
 
 func topenReadFile(in TVariable) TVariable {
-	if equateType(in.Type, tString) {
+	if !equateType(in.Type, tString) {
 		panic("Tried to open a file (for reading), but did not use a string type for the file name.")
 	}
-	fd, err := os.Open(in.Data.(string))
+	fd, err := os.Open(datToString(in.Data))
 	if err != nil {
 		panic(fmt.Sprintf("Failed to open file (for reading) %v as requested by the program. Aborting.\n%v", in.Data, err))
 	}
