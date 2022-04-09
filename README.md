@@ -26,7 +26,10 @@ Binaries will be dumped in the "build" folder.
 
 ## TODO
 
-What works
+THERE ARE PROBABLY ***MANY*** BUGS IN THIS CODE AS I HAVE NOT CREATED ANY COMPREHENSIVE TESTING
+USE AT YOUR OWN RISK
+
+What (seems to) work
 - Variable definition
 - Array definition
 - Struct definition
