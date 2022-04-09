@@ -374,7 +374,7 @@ func getStringLiteral(v tparse.Node) []interface{} {
 }
 
 func getCharLiteral(v tparse.Node) byte {
-	val, mb, _, err := strconv.UnquoteChar(v.Data.Data, byte('\''))
+	val, mb, _, err := strconv.UnquoteChar(v.Data.Data[1:], byte('\''))
 
 	if err != nil || mb == true{
 		errOut(fmt.Sprintf("Failed to parse character as single byte. %v", v.Data))
