@@ -41,9 +41,7 @@ What (seems to) work
 - `else` blocks
 - File IO
 - Print statements
-
-What doesn't work
-- Appending to arrays
+- Appending to arrays `[array variable].append( [value] )`
 
 ## Usage
 
@@ -58,6 +56,12 @@ Once you have built the parser, it can be invoked in the build folder with `./pa
 - `-in <file>` tells the parser what file to parse. This is the only manditory option.
 
 - `-out <file>` tells the parser where to write the data.  The default is `out.tnt`.
+
+The interpreter can be invoked in the build folder with `./tint`.  The cli options are as follows:
+
+- `-in <path to file>` Tells the interpreter what file to interpret. This is the only manditory option.
+
+- `-flags <quoted list of arguments>` Arguments to pass to the interpreted program.  Should be enclosed in quotes if you use multiple arguments.
 
 ### Other notes
 
