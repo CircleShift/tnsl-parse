@@ -695,9 +695,8 @@ func isStruct(t TType, skp int) bool {
 }
 
 func isPointer(t TType, skp int) bool {
-	for ;skp < len(t.Pre) && t.Pre[skp] == "const"; skp++ {}
 
-	if len(t.Pre) >= skp {
+	if len(t.Pre) <= skp {
 		return false
 	}
 
