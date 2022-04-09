@@ -714,6 +714,13 @@ func isArray(t TType, skp int) bool {
 // Deals with call and index nodes
 func evalCIN(v tparse.Node, ctx *VarMap, wk *TVariable) *TVariable {
 	if v.Sub[0].Data.Data == "call" {
+		if v.Data.Data == "append" && isArray(wk.Type, 0) {
+			tmp := convertVal(evalValue(v.Sub[0].Sub[0], ctx), stripType(wk.Type, 1))
+			i := len((*(wk.Data.(*interface{}))).([]interface{}))
+			*(wk.Data.(*interface{})) = append((*(wk.Data.(*interface{}))).([]interface{}), tmp.Data)
+			return &TVariable{stripType(wk.Type, 1), &((*(wk.Data.(*interface{}))).([]interface{})[i])}
+		}
+
 		args := []TVariable{}
 		
 		pth := TArtifact{[]string{}, v.Data.Data}
