@@ -350,6 +350,10 @@ func stripType(t TType, s int) TType {
 	return TType{t.Pre[s:], t.T, t.Post}
 }
 
+func prependType(t TType, p string) TType {
+	return TType{append(t.Pre, p), t.T, t.Post}
+}
+
 // Value generation
 
 func getStringLiteral(v tparse.Node) []interface{} {
@@ -455,14 +459,6 @@ func getLiteralType(v tparse.Node) TType {
 	}
 }
 
-func typePrepend(t TType, p string) TType {
-	return TType{append(t.Pre, p), t.T, t.Post}
-}
-
-func typeStrip(t TType) TType {
-	return TType{append([]string{}, t.Pre[1:]...), t.T, t.Post}
-}
-
 // Convert Value to Struct from Array (cvsa)
 // USE ONLY IN THE CASE OF tStruct!
 func cvsa(sct TArtifact, dat []interface{}) VarMap {
@@ -544,7 +540,6 @@ func csts(st TArtifact, dat VarMap) VarMap {
 }
 
 func convertValPS(to TType, sk int, dat interface{}) interface{} {
-	fmt.Println(to)
 	if isPointer(to, sk) || equateTypePSO(to, tFile, sk) {
 		return dat
 	}
@@ -719,7 +714,6 @@ func isArray(t TType, skp int) bool {
 
 // Deals with call and index nodes
 func evalCIN(v tparse.Node, ctx *VarMap, wk *TVariable) *TVariable {
-	fmt.Println(v, wk)
 	if v.Sub[0].Data.Data == "call" {
 		args := []TVariable{}
 		
@@ -766,11 +760,11 @@ func evalCIN(v tparse.Node, ctx *VarMap, wk *TVariable) *TVariable {
 		case "index":
 			ind := convertVal(evalValue(v.Sub[i].Sub[0], ctx), tInt).Data.(int)
 			wk.Data = &(((*(wk.Data.(*interface{}))).([]interface{}))[ind])
-			wk.Type.Pre = wk.Type.Pre[1:]
+			wk.Type = stripType(wk.Type, 1)
 		case "`":
 			// De-reference
 			wk.Data = (*(wk.Data.(*interface{})))
-			wk.Type.Pre = wk.Type.Pre[1:]
+			wk.Type = stripType(wk.Type, 1)
 		}
 	}
 
@@ -821,6 +815,10 @@ func evalDotChain(v tparse.Node, ctx *VarMap) *TVariable {
 				if out == nil {
 					out = evalCIN(*wnd, ctx, &TVariable{TType{[]string{}, wrk, ""}, nil})
 				} else {
+					if wnd.Sub[len(wnd.Sub) - 1].Data.Data == "++" || v.Sub[len(wnd.Sub) - 1].Data.Data == "--" {
+						tctx := (*(out.Data.(*interface{}))).(VarMap)
+						return setVal(v, &(tctx), nil)
+					}
 					out = evalCIN(*wnd, ctx, out)
 				}
 		} else if out != nil {
@@ -916,6 +914,9 @@ func evalValue(v tparse.Node, ctx *VarMap) *TVariable {
 		return &TVariable{t, getLiteral(v, t)}
 	case tparse.DEFWORD:
 		if len(v.Sub) > 0 {
+			if v.Sub[len(v.Sub) - 1].Data.Data == "++" || v.Sub[len(v.Sub) - 1].Data.Data == "--" {
+				return setVal(v, ctx, nil)
+			}
 			ref := evalCIN(v, ctx, nil)
 			if ref == nil {
 				return &null
