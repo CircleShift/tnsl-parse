@@ -22,11 +22,15 @@ Binaries will be dumped in the "build" folder.
 ## Status
 
     Parser: sorta works sometimes (subtext: AST generater is at least a little broken, but works for at least some use cases)
-    Interpreter: broken
+    Interpreter: working (sorta)
 
 ## TODO
 
-What works
+THERE ARE PROBABLY ***MANY*** BUGS IN THIS CODE AS I HAVE NOT CREATED ANY COMPREHENSIVE TESTING
+
+**USE AT YOUR OWN RISK**
+
+What (seems to) work
 - Variable definition
 - Array definition
 - Struct definition
