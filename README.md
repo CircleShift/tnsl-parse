@@ -31,12 +31,12 @@ What works
 - Array definition
 - Struct definition
 - Control flow blocks (`if` and `loop` specifically)
-
-What doesn't work
-- `else`
 - Function Calls
 - Getting struct members
 - Array indexing
+
+What doesn't work
+- `else` blocks
 - Appending to arrays
 
 ## Usage

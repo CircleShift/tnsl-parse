@@ -70,14 +70,10 @@ func parseBlock(tokens *[]Token, tok, max int) (Node, int) {
 				def.Sub = append(def.Sub, tmp)
 				tok += 1
 			case "else":
-				name = true
-				sparse = true
 				if (*tokens)[tok+1].Data == "if" {
-					tmp.Data = Token{KEYWORD, "elif", t.Line, t.Char}
-					def.Sub = append(def.Sub, tmp)
 					tok++
-					continue
 				}
+				fallthrough
 			case "if", "match", "case", "loop":
 				name = true
 				sparse = true

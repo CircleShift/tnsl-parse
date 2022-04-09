@@ -73,7 +73,7 @@ func errOutNode(msg string, n tparse.Node) {
 	fmt.Println("==== BEGIN ERROR ====")
 	fmt.Println(msg)
 	fmt.Println(cart)
-	fmt.Printf("Line: %v Char: %v", n.Data.Line, n.Data.Char)
+	fmt.Printf("Line: %v Char: %v\n", n.Data.Line, n.Data.Char)
 	fmt.Println("====  END  ERROR ====")
 	panic(">>> PANIC FROM EVAL <<<")
 }
@@ -106,13 +106,12 @@ func getBlockName(block tparse.Node) []string {
 			out = append(out, block.Sub[0].Sub[i].Sub[0].Data.Data)
 		} else if block.Sub[0].Sub[i].Data.Type == tparse.KEYWORD {
 			switch block.Sub[0].Sub[i].Data.Data {
-			case "if", "elif", "else", "loop", "match", "case", "default":
+			case "if", "else", "loop", "match", "case", "default":
 				out = append(out, block.Sub[0].Sub[i].Data.Data)
 			default:
 			}
 		}
 	}
-	fmt.Println(out)
 	return out
 }
 
@@ -213,7 +212,9 @@ func getDef(mod *TModule, n string) *TVariable {
 // Yes, I am aware that the following code is bad.
 // No, I don't care.
 
-func searchNode(s TArtifact) *tparse.Node {
+// The first variable it returns represents the block if one was found
+// The second node represents the absolute path to the block
+func searchNode(s TArtifact) (*tparse.Node, TArtifact) {
 
 	// i-- because we are doing a reverse lookup
 	for i := len(cart.Path); i >= 0; i-- { // O(n)
@@ -227,11 +228,14 @@ func searchNode(s TArtifact) *tparse.Node {
 		ret := getNode(tst, s.Name) // O(n^2) (O(n^3) total here)
 
 		if ret != nil {
-			return ret
+			pth := []string{}
+			pth = append(pth, cart.Path[:i]...)
+			pth = append(pth, s.Path...)
+			return ret, TArtifact{ pth , s.Name }
 		}
 	} // Block total complexity 3*O(n^2) * O(n) = 3*O(n^3)
 
-	return nil
+	return nil, tNull.T
 }
 
 func searchDef(s TArtifact) *TVariable {
@@ -532,13 +536,16 @@ func csts(st TArtifact, dat VarMap) VarMap {
 }
 
 func convertValPS(to TType, sk int, dat interface{}) interface{} {
+	if isPointer(to, sk) || equateTypePSO(to, tFile, sk) {
+		return dat
+	}
+
 	var numcv float64
 	switch v := dat.(type) {
 	case []interface{}:
 		if isArray(to, sk) {
 			return cata(to.T, v)
 		} else if isStruct(to, sk) {
-			fmt.Println(to)
 			return cvsa(to.T, v)
 		}
 	case VarMap:
@@ -602,8 +609,39 @@ func resolveArtifactCall(a TArtifact, params []TVariable) TVariable {
 		}
 	}
 
+	blk, pth := searchNode(a)
 
+	if blk == nil {
+		errOut(fmt.Sprintf("Invalid call to %v", a))
+	}
 
+	// Store and restore the path to the block
+	ocrt := cart
+	cart = pth
+	out := evalBlock(*blk, params, false)
+	cart = ocrt
+
+	return out
+}
+
+func resolveStructCall(a TArtifact, method string, params []TVariable) TVariable {
+	blk, pth := searchNode(a)
+
+	if blk == nil {
+		errOut(fmt.Sprintf("Could not find a method block for given type %v", a))
+	}
+
+	for i := 0; i < len(blk.Sub); i++ {
+		if getBlockName(blk.Sub[i])[0] == method {
+			ocrt := cart
+			cart = pth
+			out := evalBlock(blk.Sub[i], params, true)
+			cart = ocrt
+			return out
+		}
+	}
+
+	errOut(fmt.Sprintf("Could not find method %s in type %v", method, a))
 	return null
 }
 
@@ -656,47 +694,41 @@ func isArray(t TType, skp int) bool {
 	return t.Pre[skp] == "{}"
 }
 
-func evalIndex(n tparse.Node, v *TVariable) *interface{} {
-	var out *interface{} = &(v.Data)
-
-	for i := 0; i < len(n.Sub); i++ {
-		if n.Sub[i].Data.Data == "index" {
-			out = &((*out).([]interface{})[getIntLiteral(n.Sub[i].Sub[0])])
-		} else {
-			break
-		}
-	}
-
-	return out
-}
-
 // Deals with call and index nodes
 func evalCIN(v tparse.Node, ctx *VarMap, wk *TVariable) *TVariable {
 	if v.Sub[0].Data.Data == "call" {
-		pth := TArtifact{[]string{}, v.Data.Data}
-		
-		if wk != nil {
-			pth.Path = append(wk.Type.T.Path, wk.Type.T.Name)
-		}
-		
 		args := []TVariable{}
+
+		pth := wk.Type.T
+		if wk != nil && wk.Data != nil {
+			args = append(args, *wk)
+		} 
 
 		for i := 0; i < len(v.Sub[0].Sub); i++ {
 			args = append(args, *evalValue(v.Sub[0].Sub[i], ctx))
 		}
 
-		// Make call somehow and properly set wk
+		var tmp TVariable
+
+		if wk != nil && wk.Data != nil {
+			tmp = resolveStructCall(pth, v.Data.Data, args)
+		} else {
+			tmp = resolveArtifactCall(pth, args)
+		}
+		
+		wk = &TVariable{tmp.Type, &(tmp.Data)}
+
 	} else {
 		if wk == nil {
 			tmp, prs := (*ctx)[v.Data.Data]
 			if !prs {
-				return nil
+				errOutNode("Unable to find variable", v)
 			}
 			wk = &TVariable{tmp.Type, &(tmp.Data)}
 		} else {
 			tmp, prs := (*(wk.Data.(*interface{}))).(VarMap)[v.Data.Data]
 			if !prs {
-				return nil
+				errOutNode("Unable to find struct variable (index)", v)
 			}
 			wk = &TVariable{tmp.Type, &(tmp.Data)}
 		}
@@ -706,10 +738,12 @@ func evalCIN(v tparse.Node, ctx *VarMap, wk *TVariable) *TVariable {
 		switch v.Sub[i].Data.Data {
 		case "index":
 			ind := convertVal(evalValue(v.Sub[i].Sub[0], ctx), tInt).Data.(int)
-			wk.Data = &((*(wk.Data.(*interface{}))).([]interface{}))[ind]
+			wk.Data = &(((*(wk.Data.(*interface{}))).([]interface{}))[ind])
+			wk.Type.Pre = wk.Type.Pre[1:]
 		case "`":
 			// De-reference
-			wk.Data = *((*(wk.Data.(*interface{}))).(*interface{}))
+			wk.Data = (*(wk.Data.(*interface{})))
+			wk.Type.Pre = wk.Type.Pre[1:]
 		}
 	}
 
@@ -717,8 +751,72 @@ func evalCIN(v tparse.Node, ctx *VarMap, wk *TVariable) *TVariable {
 }
 
 func evalDotChain(v tparse.Node, ctx *VarMap) *TVariable {
+	out, prs := (*ctx)[v.Sub[0].Data.Data]
+	wnd := &(v.Sub[0])
 
-	return nil
+	if v.Sub[0].Data.Data == "self" && !prs {
+		errOutNode("Use of 'self' keyword outside of method block.", v)
+	} else if !prs {
+		out = nil
+	} else {
+		if wnd.Data.Data != "self" {
+			out = &TVariable{out.Type, &(out.Data)}
+		}
+
+		if len(v.Sub[0].Sub) > 0 {
+			out = evalCIN(v.Sub[0], ctx, out)
+		}
+
+		v = v.Sub[1]
+		if v.Data.Data == "." {
+			wnd = &(v.Sub[0])
+		} else {
+			wnd = &v
+		}
+	}
+
+	wrk := TArtifact{[]string{}, ""}
+
+	for ;; {
+		if out == nil {
+			if wrk.Name != "" {
+				wrk.Path = append(wrk.Path, wrk.Name)
+			}
+			wrk.Name = wnd.Data.Data
+
+			tmp := searchDef(wrk)
+			if tmp != nil {
+				out = &TVariable{tmp.Type, &(tmp.Data)}
+			}
+		}
+
+		if len(wnd.Sub) > 0 {
+				if out == nil {
+					out = evalCIN(*wnd, ctx, &TVariable{TType{[]string{}, wrk, ""}, nil})
+				} else {
+					out = evalCIN(*wnd, ctx, out)
+				}
+		} else if out != nil {
+			tmp, prs := (*(out.Data.(*interface{}))).(VarMap)[wnd.Data.Data]
+			if !prs {
+				errOutNode("Unable to find struct variable (dot)", v)
+			}
+			out = &TVariable{tmp.Type, &(tmp.Data)}
+		}
+
+		if v.Data.Data == "." {
+			v = v.Sub[1]
+			if v.Data.Data == "." {
+				wnd = &(v.Sub[0])
+			} else {
+				wnd = &v
+			}
+		} else {
+			break
+		}
+	}
+
+	return out
 }
 
 func setVal(v tparse.Node, ctx *VarMap, val *TVariable) *TVariable {
@@ -734,59 +832,29 @@ func setVal(v tparse.Node, ctx *VarMap, val *TVariable) *TVariable {
 		for ;v.Data.Data == "."; {
 			v = v.Sub[1]
 		}
+	} else {
+		tmp, prs := (*ctx)[v.Data.Data]
+
+		if !prs {
+			errOutCTX("Unable to set a variable due to the variable not existing.", ctx)
+		}
+
+		wrk = &TVariable{tmp.Type, &(tmp.Data)}
+
+		if len(v.Sub) > 0 {
+			wrk = evalCIN(v, ctx, nil)
+		}
 	}
-
-
 
 	if len(v.Sub) > 0 {
 		if v.Sub[len(v.Sub) - 1].Data.Data == "++" {
-
+			val = &TVariable{tFloat, convertValPS(tFloat, 0, *(wrk.Data.(*interface{}))).(float64) + 1}
 		} else if v.Sub[len(v.Sub) - 1].Data.Data == "--" {
-			//*()convertVal()
+			val = &TVariable{tFloat, convertValPS(tFloat, 0, *(wrk.Data.(*interface{}))).(float64) - 1}
 		}
 	}
-	art := TArtifact{[]string{}, v.Data.Data}
-	wrk := resolveArtifact(art, ctx)
-	vwk := v
 
-	if v.Data.Data == "." {
-		art.Name = v.Sub[0].Data.Data
-		vwk = v.Sub[0]
-		wrk = resolveArtifact(art, ctx)
-		for ;wrk == nil; {
-			art.Path = append(art.Path, art.Name)
-			v = v.Sub[1]
-			if v.Data.Data == "." {
-				art.Name = v.Sub[0].Data.Data
-				vwk = v.Sub[0]
-				wrk = resolveArtifact(art, ctx)
-			} else {
-				art.Name = v.Data.Data
-				wrk = resolveArtifact(art, ctx)
-				break
-			}
-		}
-	}
-	
-	if wrk == nil {
-		errOutCTX(fmt.Sprintf("Unable to set variable %s due to the variable not existing.", art), ctx)
-	}
-
-	var set *interface{} = &(wrk.Data)
-	
-	for ;; {
-		if len(vwk.Sub) > 0 {
-			
-		}
-
-		if v.Data.Data == "." {
-			vwk = v.Sub[0]
-
-			continue
-		}
-
-		break
-	}
+	var set *interface{} = wrk.Data.(*interface{})
 
 	(*set) = convertValPS((*wrk).Type, 0, val.Data)
 	
@@ -810,6 +878,13 @@ func evalValue(v tparse.Node, ctx *VarMap) *TVariable {
 
 	switch v.Data.Type {
 	case tparse.LITERAL:
+		if v.Data.Data == "self" {
+			s, prs := (*ctx)["self"]
+			if !prs {
+				errOutNode("Use of 'self' keyword when not in a method.", v)
+			}
+			return &TVariable{s.Type, *(s.Data.(*interface{}))}
+		}
 		t := getLiteralType(v)
 		return &TVariable{t, getLiteral(v, t)}
 	case tparse.DEFWORD:
@@ -824,24 +899,27 @@ func evalValue(v tparse.Node, ctx *VarMap) *TVariable {
 		return resolveArtifact(TArtifact{[]string{}, v.Data.Data}, ctx)
 
 	case tparse.AUGMENT:
-		// Special case for =
-		if v.Data.Data == "=" {
+		// Special cases
+		switch v.Data.Data {
+		case "=":
 			return setVal(v.Sub[0], ctx, evalValue(v.Sub[1], ctx))
-
-		} else if v.Data.Data == "." {
+		case ".":
 			ref := evalDotChain(v, ctx)
 			if ref == nil {
 				return &null
 			}
 			return &TVariable{ref.Type, *(ref.Data.(*interface{}))}
-
-		} else if v.Data.Data == "!" {
-
+		case "!":
 			a := convertVal(evalValue(v.Sub[0], ctx), tBool)
 			return &TVariable{tBool, !(a.Data.(bool))}
-		} else if v.Data.Data == "len" {
+		case "len":
 			a := evalValue(v.Sub[0], ctx)
 			return &TVariable{tInt, len(a.Data.([]interface{}))}
+		case "~":
+			a := evalValue(v.Sub[0], ctx)
+			typ := a.Type
+			typ.Pre = append([]string{"~"}, typ.Pre...)
+			return &TVariable{typ, &(a.Data)}
 		}
 
 		// General case setup
@@ -1022,7 +1100,6 @@ func evalParams(pd tparse.Node, params *[]TVariable, ctx *VarMap, method bool) {
 	pi := 0
 	
 	if method {
-		(*ctx)["self"] = &(*params)[0]
 		pi = 1
 	}
 	
@@ -1040,6 +1117,10 @@ func evalBlock(b tparse.Node, params []TVariable, method bool) TVariable {
 	ctx := make(VarMap)
 
 	var rty TType = tNull
+
+	if method {
+		ctx["self"] = &(params[0])
+	}
 
 	if b.Sub[0].Data.Data == "bdef" {
 		for i := 0; i < len(b.Sub[0].Sub); i++ {
