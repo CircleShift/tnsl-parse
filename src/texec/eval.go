@@ -1103,25 +1103,25 @@ func evalCF(v tparse.Node, ctx *VarMap) (bool, TVariable, int) {
 				}
 				return true, null, 0
 			case "break":
-				brk := 1
+				brk := 0
 				if len(v.Sub[i].Sub) > 0 {
 					brk = getIntLiteral(v.Sub[i].Sub[0])
 				}
 				if !loop {
-					return false, null, brk
+					return false, null, brk + 1
 				}
-				return false, null, brk - 1
+				return false, null, brk
 			case "continue":
-				cont := 1
+				cont := 0
 				if len(v.Sub[i].Sub) > 0 {
 					cont = getIntLiteral(v.Sub[i].Sub[0])
 				}
 				if !loop {
-					return false, null, -cont
-				} else if cont == 1 {
+					return false, null, -(cont + 1)
+				} else if cont == 0 {
 					goto CONCF
 				}
-				return false, null, 1 - cont
+				return false, null, -cont
 			}
 		}
 
