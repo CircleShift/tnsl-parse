@@ -213,6 +213,10 @@ func parseBinaryOp(tokens *[]Token, tok, max int) (Node) {
 			}
 		} else if t.Type == AUGMENT {
 			order, prs := ORDER[t.Data]
+			if prs == false || curl > 0 || brak > 0 || parn > 0 {
+				continue
+			}
+
 			if t.Data == "-" {
 				_, prs := ORDER[(*tokens)[tok - 1].Data]
 				if prs || (*tokens)[tok - 1].Data == "return" {
@@ -220,9 +224,7 @@ func parseBinaryOp(tokens *[]Token, tok, max int) (Node) {
 				} else if order > highOrder {
 					high, highOrder = tok, order
 				}
-			} else if prs == false || curl > 0 || brak > 0 || parn > 0 {
-				continue
-			} else if order > highOrder {
+			}  else if order > highOrder {
 				high, highOrder = tok, order
 			}
 			// TODO: Add in case for the "is" operator
