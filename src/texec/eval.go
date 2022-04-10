@@ -1233,8 +1233,9 @@ func EvalTNSL(root *TModule, args string) TVariable {
 		for j := 0; j < len(dat); j++ {
 			tmp = append(tmp, dat[j])
 		}
-
-		saif = append(saif, tmp)
+		if len(tmp) > 0 {
+			saif = append(saif, tmp)
+		}
 	}
 
 	targ := TVariable {
