@@ -74,6 +74,7 @@ func errOutNode(msg string, n tparse.Node) {
 	fmt.Println(msg)
 	fmt.Println(cart)
 	fmt.Printf("Line: %v Char: %v\n", n.Data.Line, n.Data.Char)
+	fmt.Printf("Data: %s\n", n.Data.Data)
 	fmt.Println("====  END  ERROR ====")
 	panic(">>> PANIC FROM EVAL <<<")
 }
