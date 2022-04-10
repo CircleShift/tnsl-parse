@@ -789,34 +789,11 @@ func evalDotChain(v tparse.Node, ctx *VarMap) *TVariable {
 		if wnd.Data.Data != "self" {
 			out = &TVariable{out.Type, &(out.Data)}
 		}
-
-		if len(v.Sub[0].Sub) > 0 {
-			out = evalCIN(v.Sub[0], ctx, out)
-		}
-
-		v = v.Sub[1]
-		if v.Data.Data == "." {
-			wnd = &(v.Sub[0])
-		} else {
-			wnd = &v
-		}
 	}
 
-	wrk := TArtifact{[]string{}, ""}
+	wrk := TArtifact{[]string{}, wnd.Data.Data}
 
 	for ;; {
-		if out == nil {
-			if wrk.Name != "" {
-				wrk.Path = append(wrk.Path, wrk.Name)
-			}
-			wrk.Name = wnd.Data.Data
-
-			tmp := searchDef(wrk)
-			if tmp != nil {
-				out = &TVariable{tmp.Type, &(tmp.Data)}
-			}
-		}
-
 		if len(wnd.Sub) > 0 {
 				if out == nil {
 					out = evalCIN(*wnd, ctx, &TVariable{TType{[]string{}, wrk, ""}, nil})
@@ -827,14 +804,8 @@ func evalDotChain(v tparse.Node, ctx *VarMap) *TVariable {
 					}
 					out = evalCIN(*wnd, ctx, out)
 				}
-		} else if out != nil {
-			tmp, prs := (*(out.Data.(*interface{}))).(VarMap)[wnd.Data.Data]
-			if !prs {
-				errOutNode("Unable to find struct variable (dot)", v)
-			}
-			out = &TVariable{tmp.Type, &(tmp.Data)}
 		}
-
+		
 		if v.Data.Data == "." {
 			v = v.Sub[1]
 			if v.Data.Data == "." {
@@ -842,8 +813,27 @@ func evalDotChain(v tparse.Node, ctx *VarMap) *TVariable {
 			} else {
 				wnd = &v
 			}
+
+			wrk.Path = append(wrk.Path, wrk.Name)
+			wrk.Name = wnd.Data.Data
+
 		} else {
 			break
+		}
+
+		if out == nil {
+			tmp := searchDef(wrk)
+			if tmp != nil {
+				out = &TVariable{tmp.Type, &(tmp.Data)}
+			}
+		} else if len(wnd.Sub) == 0 || wnd.Sub[0].Data.Data != "call" {
+			tmp, prs := (*(out.Data.(*interface{}))).(VarMap)[wnd.Data.Data]
+			if !prs {
+				fmt.Println(wnd)
+				fmt.Println(out)
+				errOutNode("Unable to find struct variable (dot)", v)
+			}
+			out = &TVariable{tmp.Type, &(tmp.Data)}
 		}
 	}
 

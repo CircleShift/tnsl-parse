@@ -99,7 +99,8 @@ func modDefStruct(n tparse.Node, m *TModule) {
 
 func modDefEnum(n tparse.Node, m *TModule) {
 	name := n.Sub[0].Data.Data
-	t := getType(n.Sub[1].Sub[0])
+	t := getType(n.Sub[1])
+	fmt.Println(t)
 	s, vs := modDefVars(n.Sub[2], t)
 	out := TVariable{tEnum, make(VarMap)}
 	for i := 0; i < len(s); i++ {
