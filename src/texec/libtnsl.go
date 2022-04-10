@@ -176,8 +176,11 @@ func tfile_close(file TVariable) {
 // tnsl.io.File.read
 func tfile_read(file TVariable) TVariable {
 	b := []byte{1}
-	(file.Data).(*os.File).Read(b)
-	return TVariable{tCharp, b[0]}
+	_, err := (file.Data).(*os.File).Read(b)
+	if err != nil {
+		return TVariable{tInt, -1}
+	}
+	return TVariable{tInt, int(b[0])}
 }
 
 // tnsl.io.File.write

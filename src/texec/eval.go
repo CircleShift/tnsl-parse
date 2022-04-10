@@ -994,10 +994,16 @@ func evalValue(v tparse.Node, ctx *VarMap) *TVariable {
 		case "<":
 			out.Type = tBool
 			out.Data = a.Data.(float64) < b.Data.(float64)
-		case ">=":
+		case "!>":
+			out.Type = tBool
+			out.Data = a.Data.(float64) <= b.Data.(float64)
+		case "!<":
 			out.Type = tBool
 			out.Data = a.Data.(float64) >= b.Data.(float64)
-		case "<=":
+		case ">==":
+			out.Type = tBool
+			out.Data = a.Data.(float64) >= b.Data.(float64)
+		case "<==":
 			out.Type = tBool
 			out.Data = a.Data.(float64) <= b.Data.(float64)
 		}
@@ -1081,7 +1087,13 @@ func evalCF(v tparse.Node, ctx *VarMap) (bool, TVariable, int) {
 					if val.Data.(bool) == true {
 						i++
 
-						for ;i < len(v.Sub) && getNames(v.Sub[i])[0] == "else"; i++ {}
+						for ;i < len(v.Sub) && v.Sub[i].Data.Data == "block"; {
+							if getNames(v.Sub[i])[0] == "else" {
+								i++
+							} else {
+								break
+							}
+						}
 						
 						if i < len(v.Sub) {
 							i--

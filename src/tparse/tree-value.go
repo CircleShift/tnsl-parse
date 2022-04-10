@@ -69,27 +69,30 @@ var ORDER = map[string]int{
 	"!|": 6,
 	"!^": 6,
 
-	// Boolean and
-	"&&": 7,
-	// Boolean or
-	"||": 7,
-	// Truthy equals
+	// Truthy equality
 	"==": 7,
-
-	// Greater than
-	">": 7,
-	// Less than
-	"<": 7,
-
-	"!&&": 7,
-	"!||": 7,
 	"!==": 7,
 
-	"!>": 7,
-	"!<": 7,
+	// Boolean and
+	"&&": 8,
+	// Boolean or
+	"||": 8,
+
+	// Greater than
+	">": 8,
+	// Less than
+	"<": 8,
+
+	"!>": 8,
+	"!<": 8,
+	">==": 8,
+	"<==": 8,
+
+	"!&&": 8,
+	"!||": 8,
 
 	// Assignement
-	"=": 8,
+	"=": 9,
 }
 
 // Works? Please test. 
