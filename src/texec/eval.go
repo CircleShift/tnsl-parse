@@ -745,21 +745,6 @@ func evalCIN(v tparse.Node, ctx *VarMap, wk *TVariable) *TVariable {
 		}
 		
 		wk = &TVariable{tmp.Type, &(tmp.Data)}
-
-	} else {
-		if wk == nil {
-			tmp, prs := (*ctx)[v.Data.Data]
-			if !prs {
-				errOutNode("Unable to find variable", v)
-			}
-			wk = &TVariable{tmp.Type, &(tmp.Data)}
-		} else {
-			tmp, prs := (*(wk.Data.(*interface{}))).(VarMap)[v.Data.Data]
-			if !prs {
-				errOutNode("Unable to find struct variable (index)", v)
-			}
-			wk = &TVariable{tmp.Type, &(tmp.Data)}
-		}
 	}
 
 	for i := 0; i < len(v.Sub); i++ {
@@ -779,32 +764,58 @@ func evalCIN(v tparse.Node, ctx *VarMap, wk *TVariable) *TVariable {
 }
 
 func evalDotChain(v tparse.Node, ctx *VarMap) *TVariable {
-	out, prs := (*ctx)[v.Sub[0].Data.Data]
+	var out *TVariable = nil
 	wnd := &(v.Sub[0])
 
-	if v.Sub[0].Data.Data == "self" && !prs {
-		errOutNode("Use of 'self' keyword outside of method block.", v)
-	} else if !prs {
-		out = nil
-	} else {
-		if wnd.Data.Data != "self" {
-			out = &TVariable{out.Type, &(out.Data)}
+	if wnd.Data.Data == "self" {
+		var prs bool
+		out, prs = (*ctx)["self"]
+		if !prs {
+			errOutNode("Use of 'self' keyword outside of method block.", v)
+		}
+
+		v = v.Sub[1]
+		if v.Data.Data == "." {
+			wnd = &(v.Sub[0])
+		} else {
+			wnd = &v
 		}
 	}
 
 	wrk := TArtifact{[]string{}, wnd.Data.Data}
 
 	for ;; {
+		if out == nil {
+			tmp := resolveArtifact(wrk, ctx)
+			if tmp != nil {
+				out = &TVariable{tmp.Type, &(tmp.Data)}
+			}
+		} else if len(wnd.Sub) == 0 || wnd.Sub[0].Data.Data != "call" {
+			tmp, prs := (*(out.Data.(*interface{}))).(VarMap)[wnd.Data.Data]
+			if !prs {
+				errOutNode("Unable to find struct variable (dot)", v)
+			}
+			out = &TVariable{tmp.Type, &(tmp.Data)}
+		}
+
 		if len(wnd.Sub) > 0 {
-				if out == nil {
+			if out == nil {
+				if wnd.Sub[0].Data.Data == "call" {
 					out = evalCIN(*wnd, ctx, &TVariable{TType{[]string{}, wrk, ""}, nil})
 				} else {
-					if wnd.Sub[len(wnd.Sub) - 1].Data.Data == "++" || v.Sub[len(wnd.Sub) - 1].Data.Data == "--" {
-						tctx := (*(out.Data.(*interface{}))).(VarMap)
-						return setVal(v, &(tctx), nil)
-					}
-					out = evalCIN(*wnd, ctx, out)
+					errOutNode("Attempt to index/deref a variable that could not be found", *wnd)
 				}
+			} else {
+				out = evalCIN(*wnd, ctx, out)
+
+				if wnd.Sub[len(wnd.Sub) - 1].Data.Data == "++" {
+					val := convertValPS(tFloat, 0, *(out.Data.(*interface{}))).(float64) + 1
+					*(out.Data.(*interface{})) = convertValPS(out.Type, 0, val)
+				} else if wnd.Sub[len(wnd.Sub) - 1].Data.Data == "--" {
+					val := convertValPS(tFloat, 0, *(out.Data.(*interface{}))).(float64) - 1
+					*(out.Data.(*interface{})) = convertValPS(out.Type, 0, val)
+				}
+			}
 		}
 		
 		if v.Data.Data == "." {
@@ -814,28 +825,12 @@ func evalDotChain(v tparse.Node, ctx *VarMap) *TVariable {
 			} else {
 				wnd = &v
 			}
-
-			wrk.Path = append(wrk.Path, wrk.Name)
-			wrk.Name = wnd.Data.Data
-
 		} else {
 			break
 		}
-
-		if out == nil {
-			tmp := searchDef(wrk)
-			if tmp != nil {
-				out = &TVariable{tmp.Type, &(tmp.Data)}
-			}
-		} else if len(wnd.Sub) == 0 || wnd.Sub[0].Data.Data != "call" {
-			tmp, prs := (*(out.Data.(*interface{}))).(VarMap)[wnd.Data.Data]
-			if !prs {
-				fmt.Println(wnd)
-				fmt.Println(out)
-				errOutNode("Unable to find struct variable (dot)", v)
-			}
-			out = &TVariable{tmp.Type, &(tmp.Data)}
-		}
+		
+		wrk.Path = append(wrk.Path, wrk.Name)
+		wrk.Name = wnd.Data.Data
 	}
 
 	return out
@@ -864,7 +859,7 @@ func setVal(v tparse.Node, ctx *VarMap, val *TVariable) *TVariable {
 		wrk = &TVariable{tmp.Type, &(tmp.Data)}
 
 		if len(v.Sub) > 0 {
-			wrk = evalCIN(v, ctx, nil)
+			wrk = evalCIN(v, ctx, wrk)
 		}
 	}
 
@@ -876,9 +871,7 @@ func setVal(v tparse.Node, ctx *VarMap, val *TVariable) *TVariable {
 		}
 	}
 
-	var set *interface{} = wrk.Data.(*interface{})
-
-	(*set) = convertValPS((*wrk).Type, 0, val.Data)
+	*(wrk.Data.(*interface{})) = convertValPS((*wrk).Type, 0, val.Data)
 	
 	return wrk
 }
@@ -914,10 +907,15 @@ func evalValue(v tparse.Node, ctx *VarMap) *TVariable {
 			if v.Sub[len(v.Sub) - 1].Data.Data == "++" || v.Sub[len(v.Sub) - 1].Data.Data == "--" {
 				return setVal(v, ctx, nil)
 			}
-			ref := evalCIN(v, ctx, nil)
-			if ref == nil {
-				return &null
+
+			ref, prs := (*ctx)[v.Data.Data]
+
+			if !prs {
+				ref = evalCIN(v, ctx, nil)
+			} else {
+				ref = evalCIN(v, ctx, &TVariable{ref.Type, &(ref.Data)})
 			}
+
 			return &TVariable{ref.Type, *(ref.Data.(*interface{}))}
 		}
 
