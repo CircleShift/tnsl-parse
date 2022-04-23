@@ -478,7 +478,12 @@ func cvsa(sct TArtifact, dat []interface{}) VarMap {
 	for i:=0;i<len(vars);i++ {
 		tmp := TVariable{vars[i].Type, nil}
 		if isStruct(vars[i].Type, 0) {
-			tmp.Data = cvsa(vars[i].Type.T, dat[i].([]interface{}))
+			switch v := dat[i].(type) {
+			case []interface{}:
+				tmp.Data = cvsa(vars[i].Type.T, v)
+			case VarMap:
+				tmp.Data = csts(vars[i].Type.T, v)
+			}
 		} else {
 			tmp.Data = dat[i]
 		}
