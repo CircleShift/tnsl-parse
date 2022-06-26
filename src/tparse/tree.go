@@ -72,3 +72,52 @@ func MakeTree(tokens *[]Token, file string) Node {
 
 	return out
 }
+
+func findClosing(tokens *[]Token, tok int) int {
+	t := (*tokens)[tok]
+	var match string
+	
+	switch (t.Data) {
+	case "(":
+		match = ")"
+	case "[":
+		match = "]"
+	case "{":
+		match = "}"
+	default:
+		errOut("[Internal] Attempted to find closing for a non-delim token.", t)
+	}
+
+	var curl, brak, parn int = 0, 0, 0
+
+	for tok++; tok < len(*tokens); tok++ {
+		t := (*tokens)[tok]
+		if t.Type == DELIMIT {
+			switch t.Data {
+			case "{":
+				curl++
+			case "[":
+				brak++
+			case "(":
+				parn++
+			
+			case "}":
+				curl--
+			case "]":
+				brak--
+			case ")":
+				parn--
+			}
+
+			if curl < 0 || brak < 0 || parn < 0 {
+				if (curl < 0 && match == "}") || (brak < 0 && match == "]") || (parn < 0 && match == ")") {
+					return tok
+				} else {
+					errOut("Un-matched closing delimiter when searching for a closing delim.", t)
+				}
+			}
+		}
+	}
+
+	return -1
+}

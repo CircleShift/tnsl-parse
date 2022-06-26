@@ -115,6 +115,11 @@ func parseUnaryOps(tokens *[]Token, tok, max int) (Node) {
 				(*vnode).Data.Data = "comp"
 				val = true
 				comp = true
+			case "(": //Typecast or paren statement
+				mx := findClosing(tokens, tok)
+				(*vnode) = parseBinaryOp(tokens, tok + 1, mx)
+				tok = mx
+				val = true
 			default:
 				errOut("Unexpected delimiter when parsing value", t)
 			}
@@ -210,7 +215,7 @@ func parseBinaryOp(tokens *[]Token, tok, max int) (Node) {
 			}
 
 			if curl < 0 || brak < 0 || parn < 0 {
-				if curl > 0 || brak > 0 || parn > 0 {
+				if curl > 0 || brak > 0 || parn > 0 || tok < max - 1 {
 					errOut("Un-matched closing delimiter when parsing a type.", t)
 				}
 			}
@@ -303,7 +308,7 @@ func parseValue(tokens *[]Token, tok, max int) (Node, int) {
 				if block > 1 {
 					continue
 				} else if block == 1 {
-					errOut("Error: redefinition of a block from a block as a value is not permitted.", t)
+					errOut("Error: redefinition of a block from a value block is not permitted.", t)
 				}
 				if curl > 0 || brak > 0 || parn > 0 {
 					errOut("Delimeter pairs not closed before end of value", t)

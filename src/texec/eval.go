@@ -563,6 +563,9 @@ func convertValPS(to TType, sk int, dat interface{}) interface{} {
 	case int:
 		numcv = float64(v)
 		goto NCV
+	case uint:
+		numcv = float64(v)
+		goto NCV
 	case byte:
 		numcv = float64(v)
 		goto NCV
@@ -583,6 +586,8 @@ func convertValPS(to TType, sk int, dat interface{}) interface{} {
 	NCV:
 	if equateTypePSO(to, tInt, sk) {
 		return int(numcv)
+	} else if equateTypePSO(to, tUint, sk) {
+		return uint(numcv)
 	} else if equateTypePSO(to, tFloat, sk) {
 		return float64(numcv)
 	} else if equateTypePSO(to, tByte, sk) || equateTypePSO(to, tCharp, sk) {
@@ -696,6 +701,7 @@ func isStruct(t TType, skp int) bool {
 	ch = ch || equateTypePSO(t, tCharp, skp)
 	ch = ch || equateTypePSO(t, tBool, skp)
 	ch = ch || equateTypePSO(t, tNull, skp)
+	ch = ch || equateTypePSO(t, tUint, skp)
 
 	return !ch
 }

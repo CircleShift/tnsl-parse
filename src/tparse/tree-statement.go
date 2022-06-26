@@ -117,13 +117,14 @@ func parseBlock(tokens *[]Token, tok, max int) (Node, int) {
 			REBLOCK:
 			
 			tmp, tok = parseBlock(tokens, tok + 1, max)
-
+			
 			if (*tokens)[tok].Data == ";;" {
 				out.Sub = append(out.Sub, tmp)
 				goto REBLOCK
 			} else if (*tokens)[tok].Data == ";/" {
 				tok++
 			}
+
 		case "/:":
 			tmp, tok = parsePreBlock(tokens, tok + 1, max)
 		case ":":

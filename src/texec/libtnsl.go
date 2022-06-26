@@ -26,7 +26,8 @@ import (
 	Parts included:
 		- io.print
 		- io.println
-		- io.openFile
+		- io.readFile
+		- io.writeFile
 		- io.File API for file objects
 	
 	Types included:
@@ -46,6 +47,7 @@ var (
 	tFile = TType{Pre: []string{}, T: TArtifact{Path: []string{"tnsl", "io"}, Name: "File"}, Post: ""}
 	tString = TType{Pre: []string{"{}"}, T: TArtifact{Path: []string{}, Name:"charp"}, Post: ""}
 	tInt = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name:"int"}, Post: ""}
+	tUint = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name:"uint"}, Post: ""}
 	tByte = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name:"uint8"}, Post: ""}
 	tByteArray = TType{Pre: []string{"{}"}, T: TArtifact{Path: []string{}, Name:"uint8"}, Post: ""}
 	tFloat = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name:"float"}, Post: ""}
