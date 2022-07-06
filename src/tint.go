@@ -23,9 +23,11 @@ import "flag"
 func main() {
 	inputFile := flag.String("in", "", "The file to execute")
 	progFlags := flag.String("flags", "", "Flags for the executing program")
+	quietFlag := flag.Bool("quiet", false, "Quiet the interpreter when importing files")
 
 	flag.Parse()
 
+	texec.Quiet = *quietFlag
 	root := texec.BuildRoot(*inputFile)
 
 	fmt.Printf("Program end.  Returned %v.\n", texec.EvalTNSL(&root, *progFlags))

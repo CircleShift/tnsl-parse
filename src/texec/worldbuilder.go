@@ -21,6 +21,10 @@ import (
 	"fmt"
 )
 
+var (
+	Quiet = false
+)
+
 /**
 	worldbuilder.go - take in a file name and construct a root TModule based on it.
 */
@@ -100,7 +104,11 @@ func modDefStruct(n tparse.Node, m *TModule) {
 func modDefEnum(n tparse.Node, m *TModule) {
 	name := n.Sub[0].Data.Data
 	t := getType(n.Sub[1])
-	fmt.Println(t)
+
+	if !Quiet {
+			fmt.Println(t)
+	}
+	
 	s, vs := modDefVars(n.Sub[2], t)
 	out := TVariable{tEnum, make(VarMap)}
 	for i := 0; i < len(s); i++ {
@@ -117,7 +125,9 @@ func parseFile(p string) tparse.Node {
 
 // Import a file and auto-import sub-modules and files
 func importFile(f string, m *TModule) {
-	fmt.Printf("[INFO] Importing file %s\n", f)
+	if !Quiet {
+		fmt.Printf("[INFO] Importing file %s\n", f)
+	}
 	froot := parseFile(f)
 	for n := 0 ; n < len(froot.Sub) ; n++ {
 		if froot.Sub[n].Data.Data == "block" {
@@ -127,7 +137,9 @@ func importFile(f string, m *TModule) {
 				m.Artifacts = append(m.Artifacts, froot.Sub[n])
 			}
 		} else if froot.Sub[n].Data.Data == "include" {
-			fmt.Printf("[INCLUDE] %s\n", evalPreLiteral(froot.Sub[n].Sub[0]))
+			if !Quiet {
+				fmt.Printf("[INCLUDE] %s\n", evalPreLiteral(froot.Sub[n].Sub[0]))
+			}
 			importFile(evalPreLiteral(froot.Sub[n].Sub[0]), m)
 		} else if froot.Sub[n].Data.Data == "define" {
 			modDef(froot.Sub[n], m)
@@ -140,7 +152,9 @@ func importFile(f string, m *TModule) {
 		}
 		
 	}
-	fmt.Printf("[INFO] File %s has been imported.\n", f)
+	if !Quiet {
+		fmt.Printf("[INFO] File %s has been imported.\n", f)
+	}
 }
 
 // Build a module from a module block node
@@ -153,16 +167,22 @@ func buildModule(module tparse.Node) TModule {
 		out.Name = module.Sub[0].Sub[0].Sub[0].Data.Data
 	}
 
-	fmt.Printf("[INFO] Found module %s\n", out.Name)
+	if !Quiet {
+		fmt.Printf("[INFO] Found module %s\n", out.Name)
+	}
 
 	for n := 1 ; n < len(module.Sub) ; n++ {
 		if module.Sub[n].Data.Data == "include" {
-			fmt.Printf("[INCLUDE] %s\n", evalPreLiteral(module.Sub[n].Sub[0]))
+			if !Quiet {
+				fmt.Printf("[INCLUDE] %s\n", evalPreLiteral(module.Sub[n].Sub[0]))
+			}
 			importFile(evalPreLiteral(module.Sub[n].Sub[0]), &out)
 		}
 	}
 
-	fmt.Printf("[INFO] Finished loading module %s\n", out.Name)
+	if !Quiet {
+		fmt.Printf("[INFO] Finished loading module %s\n", out.Name)
+	}
 
 	return out
 }
