@@ -43,7 +43,7 @@ func parseValueList(tokens *[]Token, tok, max int) (Node, int) {
 			return out, tok
 		case DELIMIT:
 			switch t.Data {
-			case "}", ")", "]":
+			case "}", ")", "]", "/;", ";/":
 				return out, tok
 			default:
 				mx := findClosing(tokens, tok)
