@@ -34,21 +34,33 @@ func parseValueList(tokens *[]Token, tok, max int) (Node, int) {
 	out := Node{Data: Token{Type: 10, Data: "vlist"}}
 	var tmp Node
 	
-	for ; tok < max; {
+	for ;tok < max; {
 
 		t := (*tokens)[tok]
 		
 		switch t.Type {
 		case LINESEP:
-			fallthrough
-		case DELIMIT:
 			return out, tok
+		case DELIMIT:
+			switch t.Data {
+			case "}", ")", "]":
+				return out, tok
+			default:
+				mx := findClosing(tokens, tok)
+				if mx > -1 {
+					tmp, tok = parseValue(tokens, tok, mx + 1)
+					out.Sub = append(out.Sub, tmp)
+				} else {
+					errOut("Failed to find closing delim within list of values", t)
+				}
+			}
 		case INLNSEP:
 			tok++
+			fallthrough
+		default:
+			tmp, tok = parseValue(tokens, tok, max)
+			out.Sub = append(out.Sub, tmp)
 		}
-
-		tmp, tok = parseValue(tokens, tok, max)
-		out.Sub = append(out.Sub, tmp)
 	}
 
 	return out, tok

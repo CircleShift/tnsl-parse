@@ -150,21 +150,27 @@ func parseUnaryOps(tokens *[]Token, tok, max int) (Node) {
 		var tmp Node
 		switch t.Type {
 		case DELIMIT:
+			mx := findClosing(tokens, tok)
+
+			if mx < 0 {
+				errOut("Unable to find closing delim when parsing a value", t)
+			}
+
 			switch t.Data {
 			case "(": // Function call
 				if comp {
 					errOut("Composite values can not be called as functions.", t)
 				}
-				tmp, tok = parseValueList(tokens, tok + 1, max)
+				tmp, tok = parseValueList(tokens, tok + 1, mx + 1)
 				tmp.Data.Data = "call"
 			case "[": // Typecasting
-				tmp, tok = parseTypeList(tokens, tok + 1, max)
+				tmp, tok = parseTypeList(tokens, tok + 1, mx + 1)
 				tmp.Data.Data = "cast"
 			case "{": // Indexing
 				if comp {
 					errOut("Inline composite values can not be indexed.", t)
 				}
-				tmp, tok = parseValueList(tokens, tok + 1, max)
+				tmp, tok = parseValueList(tokens, tok + 1, mx + 1)
 				tmp.Data.Data = "index"
 			default:
 				errOut("Unexpected delimiter when parsing value", t)

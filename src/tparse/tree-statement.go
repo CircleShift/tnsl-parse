@@ -193,7 +193,13 @@ func keywordStatement(tokens *[]Token, tok, max int) (Node, int) {
 		out.Sub = append(out.Sub, tmp)
 		tok++
 		if (*tokens)[tok].Data == "(" {
-			tmp, tok = parseValueList(tokens, tok + 1, max)
+			mx := findClosing(tokens, tok)
+
+			if mx < 0 {
+				errOut("Failed to find closing paren when parsing a struct def", (*tokens)[tok])
+			}
+			
+			tmp, tok = parseValueList(tokens, tok + 1, mx)
 			out.Sub = append(out.Sub, tmp)
 			tok++
 		}
