@@ -55,7 +55,12 @@ if [[ -n $3 ]]; then
 fi
 
 if $(is_os $1); then
-	$1 $2
+	if [[ -z $2 ]]; then
+		$1 tint
+		$1 parse
+	else
+		$1 $2
+	fi
 else
 	print_help
 fi
