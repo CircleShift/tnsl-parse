@@ -9,13 +9,13 @@ After that, work can begin on the real parser/compiler which will be written in 
 
 This project was originally supposed to form a go based compiler for the language, but in the interest of time, it seems more efficient to build an interpreter instead so we can work on the TNSL based compiler sooner.
 
-To build the parser:
+To build both for linux:
 
-    ./gobuild.sh parse
+    ./gobuild.sh linux
 
-To build the interpreter:
+To build just one:
 
-    ./gobuild.sh tint
+    ./gobuild.sh linux <tint / parse>
 
 Binaries will be dumped in the "build" folder.
 
