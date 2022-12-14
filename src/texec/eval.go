@@ -239,7 +239,7 @@ func searchNode(s TArtifact) (*tparse.Node, TArtifact) {
 	return nil, tNull.T
 }
 
-func searchDef(s TArtifact) *TVariable {
+func searchDef(s TArtifact) (*TVariable, TArtifact) {
 
 	// i-- because of reverse lookup
 	for i := len(cart.Path); i >= 0; i-- {
@@ -253,10 +253,13 @@ func searchDef(s TArtifact) *TVariable {
 		ret := getDef(tst, s.Name)
 
 		if ret != nil {
-			return ret
+			pth := []string{}
+			pth = append(pth, cart.Path[:i]...)
+			pth = append(pth, s.Path...)
+			return ret, TArtifact{ pth , s.Name }
 		}
 	}
-	return nil
+	return nil, tNull.T
 }
 
 // End block of complexity horror
@@ -463,7 +466,7 @@ func getLiteralType(v tparse.Node) TType {
 // Convert Value to Struct from Array (cvsa)
 // USE ONLY IN THE CASE OF tStruct!
 func cvsa(sct TArtifact, dat []interface{}) VarMap {
-	sv := searchDef(sct)
+	sv, sct := searchDef(sct)
 	
 	old_c := cart
 	cart = sct
@@ -516,8 +519,7 @@ func cata(st TArtifact, dat []interface{}) []interface{} {
 // Copy struct to struct
 // Makes a deep copy of a struct.
 func csts(st TArtifact, dat VarMap) VarMap {
-	sv := searchDef(st)
-	
+	sv, st := searchDef(st)
 	old_c := cart
 	cart = st
 	
@@ -678,7 +680,7 @@ func resolveArtifact(a TArtifact, ctx *VarMap) *TVariable {
 	val, prs := (*ctx)[a.Name]
 	if !prs || len(a.Path) != 0 {
 		// Try searching the modules for it
-		val = searchDef(a)
+		val, _ = searchDef(a)
 	}
 	return val
 }
