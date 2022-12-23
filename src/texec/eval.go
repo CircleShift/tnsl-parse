@@ -419,6 +419,8 @@ func getLiteralComposite(v tparse.Node) []interface{} {
 			out = append(out, getLiteralComposite(v.Sub[i]))
 		} else if v.Sub[i].Data.Data[0] == '0' {
 			out = append(out, getIntLiteral(v.Sub[i]))
+		} else if v.Sub[i].Data.Data == "true" || v.Sub[i].Data.Data == "false" {
+			out = append(out, getBoolLiteral(v.Sub[i]))
 		} else {
 			out = append(out, getFloatLiteral(v.Sub[i]))
 		}
@@ -434,7 +436,7 @@ func getBoolLiteral(v tparse.Node) bool {
 func getLiteral(v tparse.Node, t TType) interface{} {
 	if equateType(t, tFloat) {
 		return getFloatLiteral(v)
-	} else if equateType(t, tCharp) {
+	} else if equateType(t, tByte) {
 		return getCharLiteral(v)
 	} else if equateType(t, tString) {
 		return getStringLiteral(v)
@@ -451,7 +453,7 @@ func getLiteralType(v tparse.Node) TType {
 	if v.Data.Data[0] == '"' {
 		return tString
 	} else if v.Data.Data[0] == '\'' {
-		return tCharp
+		return tByte
 	} else if v.Data.Data == "comp" {
 		return tStruct
 	} else if v.Data.Data == "true" || v.Data.Data == "false" {
@@ -592,7 +594,7 @@ func convertValPS(to TType, sk int, dat interface{}) interface{} {
 		return uint(numcv)
 	} else if equateTypePSO(to, tFloat, sk) {
 		return float64(numcv)
-	} else if equateTypePSO(to, tByte, sk) || equateTypePSO(to, tCharp, sk) {
+	} else if equateTypePSO(to, tByte, sk) {
 		return byte(numcv)
 	} else if equateTypePSO(to, tBool, sk) {
 		return numcv != 0
@@ -700,7 +702,6 @@ func isStruct(t TType, skp int) bool {
 	ch = ch || equateTypePSO(t, tInt, skp)
 	ch = ch || equateTypePSO(t, tByte, skp)
 	ch = ch || equateTypePSO(t, tFloat, skp)
-	ch = ch || equateTypePSO(t, tCharp, skp)
 	ch = ch || equateTypePSO(t, tBool, skp)
 	ch = ch || equateTypePSO(t, tNull, skp)
 	ch = ch || equateTypePSO(t, tUint, skp)

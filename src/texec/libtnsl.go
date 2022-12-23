@@ -45,13 +45,11 @@ import (
 var (
 	
 	tFile = TType{Pre: []string{}, T: TArtifact{Path: []string{"tnsl", "io"}, Name: "File"}, Post: ""}
-	tString = TType{Pre: []string{"{}"}, T: TArtifact{Path: []string{}, Name:"charp"}, Post: ""}
+	tString = TType{Pre: []string{"{}"}, T: TArtifact{Path: []string{}, Name:"uint8"}, Post: ""}
 	tInt = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name:"int"}, Post: ""}
 	tUint = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name:"uint"}, Post: ""}
 	tByte = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name:"uint8"}, Post: ""}
-	tByteArray = TType{Pre: []string{"{}"}, T: TArtifact{Path: []string{}, Name:"uint8"}, Post: ""}
 	tFloat = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name:"float"}, Post: ""}
-	tCharp = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name:"charp"}, Post: ""}
 	tNull = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name: "null"}, Post: ""}
 	tBool = TType{Pre: []string{}, T: TArtifact{Path: []string{}, Name: "bool"}, Post: ""}
 
@@ -188,11 +186,11 @@ func tfile_read(file TVariable) TVariable {
 // tnsl.io.File.write
 func tfile_write(file, in TVariable) {
 	if equateType(file.Type, tFile) {
-		if equateType(in.Type, tCharp) || equateType(in.Type, tByte) {
+		if equateType(in.Type, tByte) {
 			b := []byte{0}
 			b[0] = (in.Data).(byte)
 			(file.Data).(*os.File).Write(b)
-		} else if equateType(in.Type, tByteArray) || equateType(in.Type, tString) {
+		} else if equateType(in.Type, tString) {
 			dat := (in.Data).([]interface{})
 			wrt := []byte{}
 			for i := 0; i < len(dat); i++ {
